@@ -1,6 +1,4 @@
 using Aspire.Hosting.Azure;
-using Azure.Provisioning;
-using Azure.Provisioning.PostgreSql;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -29,22 +27,12 @@ else
     var postgresPassword = builder.AddParameter("PostgresPassword", secret: true, value: "Password1!");
 
     var keycloakPostgres = builder.AddAzurePostgresFlexibleServer("keycloak-postgres")
-        .WithPasswordAuthentication(postgresUser, postgresPassword)
-        .ConfigureInfrastructure(infra =>
-        {
-            var pg = infra.GetProvisionableResources()
-                          .OfType<PostgreSqlFlexibleServer>()
-                          .Single();
-            infra.Add(new ProvisioningOutput("hostname", typeof(string))
-            {
-                Value = pg.FullyQualifiedDomainName
-            });
-        });
+        .WithPasswordAuthentication(postgresUser, postgresPassword);
 
     var keycloakDb = keycloakPostgres.AddDatabase("keycloakDB", "keycloak");
 
     var keycloakDbUrl = ReferenceExpression.Create(
-        $"jdbc:postgresql://{keycloakPostgres.GetOutput("hostname")}/{keycloakDb.Resource.DatabaseName}"
+        $"jdbc:postgresql://{keycloakPostgres.GetOutput("hostName")}/{keycloakDb.Resource.DatabaseName}"
     );
 
     keycloak

@@ -45,10 +45,37 @@ The realm `jtk` is imported automatically from `realms/jtk-realm.json` with two 
 ```bash
 # Install Azure Developer CLI
 brew install azd
+```
 
-# Login and deploy
-azd auth login
+First-time deploy
+```bash
+# Log in to Azure, setup ACA and deploy
+azd auth login --tenant-id eb31fcbb-d5a1-42b5-a28b-c8358bf94edf
 azd up
+```
+
+`azd up` will:
+
+1. Prompt for Azure subscription + region
+2. Prompt for the secret parameters (KeycloakPassword, PostgresUser, PostgresPassword)
+3. Provision all Azure resources (Container Apps Environment, PostgreSQL, Container Registry)
+4. Build and push Docker images for the API + frontend
+5. Deploy Keycloak + API + frontend as Container Apps
+
+Subsequent deploys
+
+```bash
+azd deploy      # redeploy after code changes (skips infra provisioning)
+```
+
+One thing to update after first deploy
+
+Once deployed, Keycloak will have a public URL. You'll need to add it to the realm's allowed redirect URIs. The easiest way is to update 
+realms/jtk-realm.json with the actual ACA domain and redeploy — or do it via the Keycloak Admin Console at https://<keycloak-url>/admin.
+
+Tear down
+```bash
+azd down        # deletes all provisioned Azure resources
 ```
 
 ## Project Structure

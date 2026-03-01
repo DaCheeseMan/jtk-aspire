@@ -1,5 +1,5 @@
 import { useAuth } from 'react-oidc-context';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const auth = useAuth();

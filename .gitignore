@@ -482,3 +482,4 @@ $RECYCLE.BIN/
 *.swp
 node_modules/
 frontend/dist/
+.azure

@@ -133,6 +133,16 @@ bookingsApi.MapDelete("/{id:int}", async (int id, ClaimsPrincipal user, AppDbCon
     return Results.NoContent();
 });
 
+// Runtime config for the frontend (Keycloak authority must be the browser-reachable URL)
+app.MapGet("/api/config", (IConfiguration config, IWebHostEnvironment env) =>
+{
+    var authority = config["Keycloak:ExternalAuthority"] ?? config["Keycloak:Authority"] ?? "";
+    // Azure Container Apps terminates TLS externally — ensure the browser gets an HTTPS URL
+    if (!env.IsDevelopment())
+        authority = authority.Replace("http://", "https://");
+    return Results.Ok(new { keycloakAuthority = authority });
+});
+
 app.MapDefaultEndpoints();
 app.UseFileServer();
 

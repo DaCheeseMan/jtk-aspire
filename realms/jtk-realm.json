@@ -29,7 +29,7 @@
         "https://*"
       ],
       "webOrigins": [
-        "+"
+        "*"
       ],
       "protocol": "openid-connect"
     }

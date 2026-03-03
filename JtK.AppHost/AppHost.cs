@@ -50,6 +50,8 @@ var appDb = builder.AddPostgres("appdb")
 var server = builder.AddProject<Projects.JtK_Server>("server")
     .WithReference(appDb)
     .WithReference(keycloak)
+    .WithEnvironment("Keycloak__ExternalAuthority",
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/jtk"))
     .WaitFor(appDb)
     .WaitFor(keycloak)
     .WithHttpHealthCheck("/health")

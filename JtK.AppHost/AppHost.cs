@@ -80,7 +80,7 @@ var fullPath = string.IsNullOrEmpty(extraPath) ? currentPath : $"{extraPath}:{cu
 // React frontend
 var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
     .WithReference(server)
-    .WithReference(keycloak, "VITE_KEYCLOAK_URL")
+    .WithEnvironment("VITE_KEYCLOAK_URL", keycloak.GetEndpoint("http"))
     .WithEnvironment("PATH", fullPath)
     .WaitFor(server);
 

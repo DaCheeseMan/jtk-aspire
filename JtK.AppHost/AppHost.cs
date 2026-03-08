@@ -50,6 +50,11 @@ var appDb = builder.AddPostgres("appdb")
 var server = builder.AddProject<Projects.JtK_Server>("server")
     .WithReference(appDb)
     .WithReference(keycloak)
+    // Inject the real Keycloak URL so the JWT Bearer backchannel (which does not go
+    // through Aspire service discovery) can fetch signing keys without resolving
+    // the "keycloak" service-discovery hostname that is set in appsettings.json.
+    .WithEnvironment("Keycloak__Authority",
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/jtk"))
     .WithEnvironment("Keycloak__ExternalAuthority",
         ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/jtk"))
     .WaitFor(appDb)
@@ -79,8 +84,10 @@ var extraPath = string.Join(":", nodePaths.Where(Directory.Exists));
 var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
 var fullPath = string.IsNullOrEmpty(extraPath) ? currentPath : $"{extraPath}:{currentPath}";
 
-// React frontend
+// React frontend — basicSsl() in vite.config.ts makes Vite serve HTTPS,
+// so we mark the endpoint scheme as https so the Aspire dashboard shows the correct URL.
 var webfrontend = builder.AddViteApp("webfrontend", "../frontend")
+    .WithEndpoint("http", e => e.UriScheme = "https")
     .WithReference(server)
     .WithEnvironment("VITE_KEYCLOAK_URL", keycloak.GetEndpoint("http"))
     .WithEnvironment("PATH", fullPath)

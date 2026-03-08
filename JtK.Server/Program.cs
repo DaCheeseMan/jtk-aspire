@@ -20,12 +20,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.Audience = "jtk-web";
         options.RequireHttpsMetadata = false;
         options.TokenValidationParameters.ValidateIssuer = false;
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>()
+                    .LogError(ctx.Exception,
+                        "JWT authentication failed. Authority={Authority}",
+                        options.Authority);
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+
+// Ignore navigation-property cycles when serialising EF entities directly
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.ReferenceHandler =
+        System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 
 // CORS for React frontend
 builder.Services.AddCors(options =>
@@ -34,7 +51,9 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",
-                "http://localhost:5174")
+                "http://localhost:5174",
+                "https://localhost:5173",
+                "https://localhost:5174")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -51,10 +70,33 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // Apply migrations and seed on startup
+    // Apply EF migrations on startup. Retry with back-off to handle the race where the
+    // PostgreSQL container passes its health check before it is fully ready to serve DDL.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    var migrationLogger = scope.ServiceProvider
+        .GetRequiredService<ILogger<AppDbContext>>();
+
+    const int maxAttempts = 8;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        try
+        {
+            // Note: EF logs a "Failed executing DbCommand" for the __EFMigrationsHistory
+            // SELECT on a brand-new database — that is normal first-run behaviour.
+            // MigrateAsync handles it internally and creates the table before proceeding.
+            await db.Database.MigrateAsync();
+            break;
+        }
+        catch (Exception ex) when (attempt < maxAttempts)
+        {
+            var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1)); // 1s, 2s, 4s, 8s…
+            migrationLogger.LogWarning(ex,
+                "Migration attempt {Attempt}/{Max} failed. Retrying in {Delay}s…",
+                attempt, maxAttempts, delay.TotalSeconds);
+            await Task.Delay(delay);
+        }
+    }
 }
 
 // --- Courts endpoints (public) ---

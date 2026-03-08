@@ -12,15 +12,22 @@ var keycloak = builder.AddKeycloak("keycloak", adminPassword: keycloakPassword)
     .WithEnvironment("KC_HOSTNAME_STRICT", "false")
     .WithEndpoint("http", e => e.IsExternal = true);
 
+// App PostgreSQL database — declared up front so both branches of the if/else can
+// assign it; the interface type works because IResourceBuilder<out T> is covariant.
+IResourceBuilder<IResourceWithConnectionString> appDb;
+
 if (builder.ExecutionContext.IsRunMode)
 {
-    // Local dev: use Keycloak's built-in dev-file DB, import realm and persist with a volume
+    // Local dev: Docker PostgreSQL + Keycloak with realm import
     keycloak.WithDataVolume()
             .WithRealmImport("../realms");
+
+    appDb = builder.AddPostgres("appdb").AddDatabase("jtkdb");
 }
 else
 {
-    // Azure publish: back Keycloak with Azure PostgreSQL Flexible Server
+    // Azure publish: explicit Azure PostgreSQL for both Keycloak and the app so
+    // database names are predictable and not derived from auto-generated resource names.
     builder.AddAzureContainerAppEnvironment("cae");
 
     var postgresUser = builder.AddParameter("PostgresUser", value: "jtk");
@@ -40,11 +47,15 @@ else
         .WithEnvironment("KC_DB_URL", keycloakDbUrl)
         .WithEnvironment("KC_DB_USERNAME", postgresUser)
         .WithEnvironment("KC_DB_PASSWORD", postgresPassword);
-}
 
-// App PostgreSQL database
-var appDb = builder.AddPostgres("appdb")
-    .AddDatabase("jtkdb");
+    // App database — explicit server so the database is always named "jtkdb"
+    var appDbUser = builder.AddParameter("AppDbUser", value: "jtk");
+    var appDbPassword = builder.AddParameter("AppDbPassword", secret: true, value: "Password1!");
+
+    appDb = builder.AddAzurePostgresFlexibleServer("appdb")
+        .WithPasswordAuthentication(appDbUser, appDbPassword)
+        .AddDatabase("jtkdb");
+}
 
 // API server
 var server = builder.AddProject<Projects.JtK_Server>("server")

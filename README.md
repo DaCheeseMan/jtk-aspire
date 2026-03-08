@@ -83,8 +83,8 @@ azd up
 `azd up` will:
 
 1. Prompt for Azure subscription + region
-2. Prompt for the secret parameters (KeycloakPassword, PostgresUser, PostgresPassword)
-3. Provision all Azure resources (Container Apps Environment, PostgreSQL, Container Registry)
+2. Prompt for the secret parameters (KeycloakPassword, PostgresUser, PostgresPassword, AppDbUser, AppDbPassword)
+3. Provision all Azure resources (Container Apps Environment, two PostgreSQL Flexible Servers, Container Registry)
 4. Build and push Docker images for the API + frontend
 5. Deploy Keycloak + API + frontend as Container Apps
 
@@ -94,10 +94,26 @@ Subsequent deploys
 azd deploy      # redeploy after code changes (skips infra provisioning)
 ```
 
-One thing to update after first deploy
+### After first deploy — Keycloak setup (required)
 
-Once deployed, Keycloak will have a public URL. You'll need to add it to the realm's allowed redirect URIs. The easiest way is to update 
-realms/jtk-realm.json with the actual ACA domain and redeploy — or do it via the Keycloak Admin Console at https://<keycloak-url>/admin.
+Keycloak starts with an empty database in Azure. The realm must be imported manually once after the first `azd up`:
+
+1. Find the Keycloak URL in the Azure Portal → Container Apps → **keycloak** → Application URL  
+   (format: `https://keycloak.<env>.<region>.azurecontainerapps.io`)
+
+2. Open `https://<keycloak-url>/admin` and log in with:
+   - Username: `admin`
+   - Password: the value you set for the **KeycloakPassword** parameter during `azd up`
+
+3. In the top-left realm dropdown, click **Create realm** → **Browse** and upload `realms/jtk-realm.json` → **Create**
+
+4. After import, go to **Clients → jtk-web → Valid redirect URIs** and add the public URL of the **server** Container App (the frontend is served from the same container):
+   ```
+   https://<server-url>
+   https://<server-url>/*
+   ```
+
+Subsequent redeploys (`azd deploy`) do not require this step — the realm is persisted in Keycloak's PostgreSQL database.
 
 Tear down
 ```bash

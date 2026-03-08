@@ -66,12 +66,11 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Environment.IsDevelopment())
+// Apply EF migrations on every startup in all environments.
+// This creates the schema and seeds the courts data on first run.
+// Retry with exponential back-off to handle the race where PostgreSQL passes its
+// health check before it is fully ready to serve DDL (common on cold container starts).
 {
-    app.MapOpenApi();
-
-    // Apply EF migrations on startup. Retry with back-off to handle the race where the
-    // PostgreSQL container passes its health check before it is fully ready to serve DDL.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var migrationLogger = scope.ServiceProvider
@@ -97,6 +96,11 @@ if (app.Environment.IsDevelopment())
             await Task.Delay(delay);
         }
     }
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
 }
 
 // --- Courts endpoints (public) ---

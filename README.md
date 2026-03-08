@@ -73,25 +73,29 @@ The realm `jtk` is imported automatically from `realms/jtk-realm.json` with two 
 brew install azd
 ```
 
+**Why two steps instead of `azd up`**
+
+`azd up` packages before provisioning, so Keycloak's image reference is baked in before the Azure Container Registry exists. Running provision first lets the `postprovision` hook import the Keycloak image into ACR; then the deploy step re-packages and generates Bicep that points to ACR (same region) instead of `quay.io` (which is intermittently unreachable from Azure).
+
 First-time deploy
 ```bash
-# Log in to Azure, setup ACA and deploy
 azd auth login --tenant-id eb31fcbb-d5a1-42b5-a28b-c8358bf94edf
-azd up
+
+# Step 1 — provision infrastructure + import Keycloak image to ACR
+azd provision
+
+# Step 2 — package with ACR endpoint set, push images, deploy container apps
+azd deploy
 ```
 
-`azd up` will:
+`azd provision` will prompt for:
+- Azure subscription + region
+- Secret parameters: **KeycloakPassword**, **PostgresUser**, **PostgresPassword**, **AppDbUser**, **AppDbPassword**
 
-1. Prompt for Azure subscription + region
-2. Prompt for the secret parameters (KeycloakPassword, PostgresUser, PostgresPassword, AppDbUser, AppDbPassword)
-3. Provision all Azure resources (Container Apps Environment, two PostgreSQL Flexible Servers, Container Registry)
-4. Build and push Docker images for the API + frontend
-5. Deploy Keycloak + API + frontend as Container Apps
-
-Subsequent deploys
+Subsequent deploys (after code changes)
 
 ```bash
-azd deploy      # redeploy after code changes (skips infra provisioning)
+azd deploy      # re-packages and redeploys; skips infrastructure provisioning
 ```
 
 ### After first deploy — Keycloak setup (required)

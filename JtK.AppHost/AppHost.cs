@@ -48,6 +48,14 @@ else
         .WithEnvironment("KC_DB_USERNAME", postgresUser)
         .WithEnvironment("KC_DB_PASSWORD", postgresPassword);
 
+    // Use ACR-cached Keycloak image if available (set by the postprovision hook).
+    // Falls back to quay.io on the very first provision when AcrEndpoint is not yet set.
+    var acrEndpoint = Environment.GetEnvironmentVariable("AcrEndpoint") ?? "";
+    if (!string.IsNullOrEmpty(acrEndpoint))
+    {
+        keycloak.WithImageRegistry(acrEndpoint);
+    }
+
     // App database — explicit server so the database is always named "jtkdb"
     var appDbUser = builder.AddParameter("AppDbUser", value: "jtk");
     var appDbPassword = builder.AddParameter("AppDbPassword", secret: true, value: "Password1!");

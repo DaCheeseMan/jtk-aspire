@@ -9,11 +9,19 @@
   "editUsernameAllowed": false,
   "roles": {
     "realm": [
-      { "name": "member", "description": "Club member" },
-      { "name": "admin", "description": "Club administrator" }
+      {
+        "name": "member",
+        "description": "Club member"
+      },
+      {
+        "name": "admin",
+        "description": "Club administrator"
+      }
     ]
   },
-  "defaultRoles": ["member"],
+  "defaultRoles": [
+    "member"
+  ],
   "clients": [
     {
       "clientId": "jtk-web",
@@ -47,6 +55,20 @@
             "id.token.claim": "false",
             "access.token.claim": "true"
           }
+        },
+        {
+          "name": "phone-number",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "phone_number",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "phone_number",
+            "jsonType.label": "String"
+          }
         }
       ]
     }
@@ -59,9 +81,20 @@
       "lastName": "Johansson",
       "enabled": true,
       "credentials": [
-        { "type": "password", "value": "Password1!", "temporary": false }
+        {
+          "type": "password",
+          "value": "Password1!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["member"]
+      "realmRoles": [
+        "member"
+      ],
+      "attributes": {
+        "phone_number": [
+          "073-123 45 67"
+        ]
+      }
     },
     {
       "username": "admin1",
@@ -70,9 +103,21 @@
       "lastName": "Lindberg",
       "enabled": true,
       "credentials": [
-        { "type": "password", "value": "Password1!", "temporary": false }
+        {
+          "type": "password",
+          "value": "Password1!",
+          "temporary": false
+        }
       ],
-      "realmRoles": ["member", "admin"]
+      "realmRoles": [
+        "member",
+        "admin"
+      ],
+      "attributes": {
+        "phone_number": [
+          "070-987 65 43"
+        ]
+      }
     }
   ]
 }

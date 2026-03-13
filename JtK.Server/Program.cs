@@ -114,6 +114,26 @@ courtsApi.MapGet("/{id:int}", async (int id, AppDbContext db) =>
         ? Results.Ok(court)
         : Results.NotFound());
 
+// Returns all bookings for a court in a date range (for the weekly calendar)
+courtsApi.MapGet("/{id:int}/bookings", async (int id, DateOnly from, DateOnly to, AppDbContext db) =>
+{
+    var bookings = await db.Bookings
+        .Where(b => b.CourtId == id && b.Date >= from && b.Date <= to)
+        .OrderBy(b => b.Date).ThenBy(b => b.StartTime)
+        .Select(b => new
+        {
+            b.Id,
+            b.Date,
+            b.StartTime,
+            b.EndTime,
+            b.UserId,
+            b.UserName,
+            b.UserPhone,
+        })
+        .ToListAsync();
+    return Results.Ok(bookings);
+}).RequireAuthorization();
+
 // --- Bookings endpoints (authenticated) ---
 var bookingsApi = app.MapGroup("/api/bookings").RequireAuthorization();
 
@@ -135,6 +155,7 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
     var userName = user.FindFirstValue(ClaimTypes.Name)
                 ?? user.FindFirstValue("preferred_username")
                 ?? userId;
+    var userPhone = user.FindFirstValue("phone_number") ?? string.Empty;
 
     var court = await db.Courts.FindAsync(req.CourtId);
     if (court is null || !court.IsActive)
@@ -142,6 +163,20 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
 
     var start = new TimeOnly(req.StartHour, 0);
     var end = start.AddHours(1);
+
+    // Reject bookings in the past (compare date + time against current local time)
+    var nowUtc = DateTime.UtcNow;
+    var today = DateOnly.FromDateTime(nowUtc);
+    var nowTime = TimeOnly.FromDateTime(nowUtc);
+    if (req.Date < today || (req.Date == today && start <= nowTime))
+        return Results.BadRequest("Cannot book a slot in the past.");
+
+    // Max 2 future bookings per user
+    var futureCount = await db.Bookings.CountAsync(b =>
+        b.UserId == userId &&
+        (b.Date > today || (b.Date == today && b.StartTime > nowTime)));
+    if (futureCount >= 2)
+        return Results.BadRequest("Du kan inte ha fler än 2 kommande bokningar.");
 
     var overlap = await db.Bookings.AnyAsync(b =>
         b.CourtId == req.CourtId &&
@@ -156,6 +191,7 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
         CourtId = req.CourtId,
         UserId = userId,
         UserName = userName,
+        UserPhone = userPhone,
         Date = req.Date,
         StartTime = start,
         EndTime = end

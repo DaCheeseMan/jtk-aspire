@@ -10,6 +10,42 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+type SigninSilentFn = () => Promise<{ access_token: string } | null | undefined>;
+type SignoutFn = () => Promise<void>;
+
+let _signinSilent: SigninSilentFn | null = null;
+let _signout: SignoutFn | null = null;
+
+export function setupAuthHandlers(signinSilent: SigninSilentFn, signout: SignoutFn) {
+  _signinSilent = signinSilent;
+  _signout = signout;
+}
+
+// On 401, try a silent token renewal and retry the request once.
+// If renewal fails, sign the user out.
+apiClient.interceptors.response.use(
+  res => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry && _signinSilent) {
+      original._retry = true;
+      try {
+        const user = await _signinSilent();
+        if (user?.access_token) {
+          setAuthToken(user.access_token);
+          original.headers['Authorization'] = `Bearer ${user.access_token}`;
+          return apiClient(original);
+        }
+      } catch {
+        // Silent renewal failed — sign out so the user can log in again
+        await _signout?.();
+        return Promise.reject(error);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export interface Court {
   id: number;
   name: string;
@@ -23,9 +59,20 @@ export interface Booking {
   court: Court;
   userId: string;
   userName: string;
+  userPhone: string;
   date: string;
   startTime: string;
   endTime: string;
+}
+
+export interface CourtBooking {
+  id: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
 }
 
 export interface CreateBookingRequest {
@@ -43,4 +90,6 @@ export const bookingsApi = {
   getMine: () => apiClient.get<Booking[]>('/bookings').then(r => r.data),
   create: (req: CreateBookingRequest) => apiClient.post<Booking>('/bookings', req).then(r => r.data),
   cancel: (id: number) => apiClient.delete(`/bookings/${id}`),
+  getForCourt: (courtId: number, from: string, to: string) =>
+    apiClient.get<CourtBooking[]>(`/courts/${courtId}/bookings`, { params: { from, to } }).then(r => r.data),
 };

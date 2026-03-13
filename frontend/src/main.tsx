@@ -24,6 +24,7 @@ import App from './App.tsx'
     post_logout_redirect_uri: window.location.origin,
     response_type: 'code',
     scope: 'openid profile email',
+    automaticSilentRenew: true,
   }
 
   createRoot(document.getElementById('root')!).render(

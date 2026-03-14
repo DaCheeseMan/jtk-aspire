@@ -81,6 +81,13 @@ export interface CreateBookingRequest {
   startHour: number;
 }
 
+export interface UserProfile {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  attributes?: Record<string, string[]>;
+}
+
 export const courtsApi = {
   getAll: () => apiClient.get<Court[]>('/courts').then(r => r.data),
   getById: (id: number) => apiClient.get<Court>(`/courts/${id}`).then(r => r.data),
@@ -92,4 +99,9 @@ export const bookingsApi = {
   cancel: (id: number) => apiClient.delete(`/bookings/${id}`),
   getForCourt: (courtId: number, from: string, to: string) =>
     apiClient.get<CourtBooking[]>(`/courts/${courtId}/bookings`, { params: { from, to } }).then(r => r.data),
+};
+
+export const profileApi = {
+  get: () => apiClient.get<UserProfile>('/profile').then(r => r.data),
+  update: (profile: UserProfile) => apiClient.post<void>('/profile', profile),
 };

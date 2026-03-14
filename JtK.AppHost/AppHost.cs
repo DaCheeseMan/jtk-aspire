@@ -76,6 +76,9 @@ var server = builder.AddProject<Projects.JtK_Server>("server")
         ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/jtk"))
     .WithEnvironment("Keycloak__ExternalAuthority",
         ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/jtk"))
+    .WithEnvironment("Keycloak__AdminUrl",
+        ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}"))
+    .WithEnvironment("Keycloak__AdminPassword", keycloakPassword)
     .WaitFor(appDb)
     .WaitFor(keycloak)
     .WithHttpHealthCheck("/health")

@@ -7,6 +7,7 @@ import { LandingPage } from './pages/LandingPage'
 import { CourtsPage } from './pages/CourtsPage'
 import { WeeklyCalendarPage } from './pages/WeeklyCalendarPage'
 import { MyBookingsPage } from './pages/MyBookingsPage'
+import { ProfilePage } from './pages/ProfilePage'
 import { setAuthToken, setupAuthHandlers } from './api/client'
 import './App.css'
 
@@ -45,6 +46,9 @@ function App() {
           } />
           <Route path="/my-bookings" element={
             <ProtectedRoute><MyBookingsPage /></ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute><ProfilePage /></ProtectedRoute>
           } />
         </Routes>
       </main>

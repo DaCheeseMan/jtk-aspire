@@ -3,6 +3,7 @@ using JtK.Server.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,9 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// Named HttpClient for proxying requests to the Keycloak Account API
+builder.Services.AddHttpClient("keycloak-account");
 
 var app = builder.Build();
 
@@ -225,10 +229,118 @@ app.MapGet("/api/config", (IConfiguration config, IWebHostEnvironment env) =>
     return Results.Ok(new { keycloakAuthority = authority });
 });
 
+// --- Profile endpoints (authenticated) ---
+// Uses the Keycloak Admin REST API server-side so there are no browser CORS issues
+// and no dependency on the token's audience claim.
+var profileApi = app.MapGroup("/api/profile").RequireAuthorization();
+
+profileApi.MapGet("/", async (ClaimsPrincipal user, IConfiguration config, IHttpClientFactory httpClientFactory) =>
+{
+    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub")!;
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory);
+    if (adminToken is null) return Results.StatusCode(502);
+
+    var adminUrl = $"{config["Keycloak:AdminUrl"]}/admin/realms/jtk/users/{userId}";
+    var client = httpClientFactory.CreateClient("keycloak-account");
+    var req = new HttpRequestMessage(HttpMethod.Get, adminUrl);
+    req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+    var res = await client.SendAsync(req);
+    if (!res.IsSuccessStatusCode) return Results.StatusCode((int)res.StatusCode);
+
+    var kcUser = await res.Content.ReadFromJsonAsync<KeycloakUserRepresentation>();
+    return Results.Ok(new
+    {
+        firstName = kcUser?.FirstName,
+        lastName = kcUser?.LastName,
+        email = kcUser?.Email,
+        attributes = kcUser?.Attributes,
+    });
+});
+
+profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, IConfiguration config, IHttpClientFactory httpClientFactory) =>
+{
+    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub")!;
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory);
+    if (adminToken is null) return Results.StatusCode(502);
+
+    var adminUrl = $"{config["Keycloak:AdminUrl"]}/admin/realms/jtk/users/{userId}";
+    var client = httpClientFactory.CreateClient("keycloak-account");
+
+    // Merge attributes from the body with any existing attributes
+    var getReq = new HttpRequestMessage(HttpMethod.Get, adminUrl);
+    getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    var getRes = await client.SendAsync(getReq);
+    var existing = getRes.IsSuccessStatusCode
+        ? await getRes.Content.ReadFromJsonAsync<KeycloakUserRepresentation>()
+        : null;
+
+    var mergedAttributes = existing?.Attributes ?? new Dictionary<string, List<string>>();
+    if (body.Attributes is not null)
+        foreach (var kv in body.Attributes)
+            mergedAttributes[kv.Key] = kv.Value;
+
+    var update = new KeycloakUserRepresentation
+    {
+        FirstName = body.FirstName,
+        LastName = body.LastName,
+        Email = body.Email,
+        Attributes = mergedAttributes,
+    };
+
+    var putReq = new HttpRequestMessage(HttpMethod.Put, adminUrl);
+    putReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    putReq.Content = JsonContent.Create(update);
+
+    var putRes = await client.SendAsync(putReq);
+    return putRes.IsSuccessStatusCode
+        ? Results.NoContent()
+        : Results.StatusCode((int)putRes.StatusCode);
+});
+
 app.MapDefaultEndpoints();
 app.UseFileServer();
 
 app.Run();
 
+// Obtains a short-lived Keycloak admin token using the admin-cli client.
+static async Task<string?> GetKeycloakAdminTokenAsync(IConfiguration config, IHttpClientFactory factory)
+{
+    var adminUrl = config["Keycloak:AdminUrl"];
+    var password = config["Keycloak:AdminPassword"] ?? "admin";
+    if (string.IsNullOrEmpty(adminUrl)) return null;
+
+    var client = factory.CreateClient("keycloak-account");
+    var form = new FormUrlEncodedContent([
+        new("grant_type", "password"),
+        new("client_id", "admin-cli"),
+        new("username", "admin"),
+        new("password", password),
+    ]);
+    var res = await client.PostAsync($"{adminUrl}/realms/master/protocol/openid-connect/token", form);
+    if (!res.IsSuccessStatusCode) return null;
+
+    var json = await res.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+    return json.GetProperty("access_token").GetString();
+}
+
 record CreateBookingRequest(int CourtId, DateOnly Date, int StartHour);
+record ProfileUpdateRequest(
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    Dictionary<string, List<string>>? Attributes);
+
+class KeycloakUserRepresentation
+{
+    [System.Text.Json.Serialization.JsonPropertyName("firstName")]
+    public string? FirstName { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("lastName")]
+    public string? LastName { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("email")]
+    public string? Email { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("attributes")]
+    public Dictionary<string, List<string>>? Attributes { get; set; }
+}
+
 

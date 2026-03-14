@@ -19,6 +19,7 @@ export function Navbar() {
           <>
             <Link to="/courts" className={isActive('/courts')}>Banor</Link>
             <Link to="/my-bookings" className={isActive('/my-bookings')}>Mina Bokningar</Link>
+            <Link to="/profile" className={isActive('/profile')}>Min Profil</Link>
           </>
         )}
       </div>

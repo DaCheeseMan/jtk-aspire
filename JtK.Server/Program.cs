@@ -60,7 +60,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Named HttpClient for proxying requests to the Keycloak Account API
+// Named HttpClient for proxying requests to the Keycloak Admin API.
 builder.Services.AddHttpClient("keycloak-account");
 
 var app = builder.Build();
@@ -262,15 +262,17 @@ app.MapGet("/api/config", (IConfiguration config, IWebHostEnvironment env) =>
 // and no dependency on the token's audience claim.
 var profileApi = app.MapGroup("/api/profile").RequireAuthorization();
 
-profileApi.MapGet("/", async (ClaimsPrincipal user, IConfiguration config, IHttpClientFactory httpClientFactory) =>
+profileApi.MapGet("/", async (ClaimsPrincipal user, IConfiguration config, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) =>
 {
     var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub")!;
-    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory);
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
     if (adminToken is null) return Results.StatusCode(502);
 
-    var adminUrl = $"{config["Keycloak:AdminUrl"]}/admin/realms/jtk/users/{userId}";
+    var adminUrl = config["Keycloak:AdminUrl"];
+    if (!env.IsDevelopment()) adminUrl = adminUrl?.Replace("http://", "https://");
+    var userUrl = $"{adminUrl}/admin/realms/jtk/users/{userId}";
     var client = httpClientFactory.CreateClient("keycloak-account");
-    var req = new HttpRequestMessage(HttpMethod.Get, adminUrl);
+    var req = new HttpRequestMessage(HttpMethod.Get, userUrl);
     req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
 
     var res = await client.SendAsync(req);
@@ -286,17 +288,19 @@ profileApi.MapGet("/", async (ClaimsPrincipal user, IConfiguration config, IHttp
     });
 });
 
-profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, IConfiguration config, IHttpClientFactory httpClientFactory) =>
+profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, IConfiguration config, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) =>
 {
     var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub")!;
-    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory);
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
     if (adminToken is null) return Results.StatusCode(502);
 
-    var adminUrl = $"{config["Keycloak:AdminUrl"]}/admin/realms/jtk/users/{userId}";
+    var adminUrl = config["Keycloak:AdminUrl"];
+    if (!env.IsDevelopment()) adminUrl = adminUrl?.Replace("http://", "https://");
+    var userUrl = $"{adminUrl}/admin/realms/jtk/users/{userId}";
     var client = httpClientFactory.CreateClient("keycloak-account");
 
     // Merge attributes from the body with any existing attributes
-    var getReq = new HttpRequestMessage(HttpMethod.Get, adminUrl);
+    var getReq = new HttpRequestMessage(HttpMethod.Get, userUrl);
     getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
     var getRes = await client.SendAsync(getReq);
     var existing = getRes.IsSuccessStatusCode
@@ -316,7 +320,7 @@ profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, 
         Attributes = mergedAttributes,
     };
 
-    var putReq = new HttpRequestMessage(HttpMethod.Put, adminUrl);
+    var putReq = new HttpRequestMessage(HttpMethod.Put, userUrl);
     putReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
     putReq.Content = JsonContent.Create(update);
 
@@ -332,9 +336,13 @@ app.UseFileServer();
 app.Run();
 
 // Obtains a short-lived Keycloak admin token using the admin-cli client.
-static async Task<string?> GetKeycloakAdminTokenAsync(IConfiguration config, IHttpClientFactory factory)
+// In non-development environments the AdminUrl is injected as http:// by Aspire but
+// Azure Container Apps external ingress only accepts HTTPS — upgrade the scheme here,
+// consistent with the same pattern used in /api/config.
+static async Task<string?> GetKeycloakAdminTokenAsync(IConfiguration config, IHttpClientFactory factory, bool isDevelopment)
 {
     var adminUrl = config["Keycloak:AdminUrl"];
+    if (!isDevelopment) adminUrl = adminUrl?.Replace("http://", "https://");
     var password = config["Keycloak:AdminPassword"] ?? "admin";
     if (string.IsNullOrEmpty(adminUrl)) return null;
 

@@ -49,11 +49,22 @@ export function WeeklyCalendarPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOf(new Date()));
   const [courtBookings, setCourtBookings] = useState<CourtBooking[]>([]);
   const [myFutureCount, setMyFutureCount] = useState(0);
+  const [cancellingBooking, setCancellingBooking] = useState<number | null>(null);
+  const [confirmBooking, setConfirmBooking] = useState<CourtBooking | null>(null);
+  const [infoBooking, setInfoBooking] = useState<CourtBooking | null>(null);
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null); // "YYYY-MM-DD-HH"
   const [error, setError] = useState<string | null>(null);
   const [confirmedSlot, setConfirmedSlot] = useState<string | null>(null); // "YYYY-MM-DD-HH"
 
   const myUserId = auth.user?.profile.sub;
+  const isAdmin = (() => {
+    try {
+      const payload = JSON.parse(atob(auth.user!.access_token.split('.')[1]));
+      return (payload?.realm_access?.roles ?? []).includes('admin');
+    } catch {
+      return false;
+    }
+  })();
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekFrom = toDateStr(weekDays[0]);
@@ -62,22 +73,22 @@ export function WeeklyCalendarPage() {
   const loadBookings = useCallback(async () => {
     if (!courtId) return;
     try {
-      const [weekData, myData] = await Promise.all([
-        bookingsApi.getForCourt(Number(courtId), weekFrom, weekTo),
-        bookingsApi.getMine(),
-      ]);
+      const weekData = await bookingsApi.getForCourt(Number(courtId), weekFrom, weekTo);
       setCourtBookings(weekData);
-      const now = new Date();
-      const todayStr = toDateStr(now);
-      const nowHour = now.getHours();
-      const future = myData.filter(b =>
-        b.date > todayStr || (b.date === todayStr && parseInt(b.startTime.slice(0, 2)) > nowHour)
-      );
-      setMyFutureCount(future.length);
+      if (auth.isAuthenticated) {
+        const myData = await bookingsApi.getMine();
+        const now = new Date();
+        const todayStr = toDateStr(now);
+        const nowHour = now.getHours();
+        const future = myData.filter(b =>
+          b.date > todayStr || (b.date === todayStr && parseInt(b.startTime.slice(0, 2)) > nowHour)
+        );
+        setMyFutureCount(future.length);
+      }
     } catch {
       setError('Kunde inte ladda bokningar.');
     }
-  }, [courtId, weekFrom, weekTo]);
+  }, [courtId, weekFrom, weekTo, auth.isAuthenticated]);
 
   useEffect(() => {
     if (auth.user?.access_token) setAuthToken(auth.user.access_token);
@@ -113,7 +124,7 @@ export function WeeklyCalendarPage() {
     const { state } = getSlotInfo(dateStr, hour);
 
     if (state !== 'free') return;
-    if (myFutureCount >= 2) {
+    if (!isAdmin && myFutureCount >= 2) {
       setError('Du kan inte ha fler än 2 kommande bokningar.');
       return;
     }
@@ -135,7 +146,22 @@ export function WeeklyCalendarPage() {
     }
   }
 
-  const atBookingLimit = myFutureCount >= 2;
+  async function confirmAdminCancel() {
+    if (!confirmBooking) return;
+    setCancellingBooking(confirmBooking.id);
+    setConfirmBooking(null);
+    setError(null);
+    try {
+      await bookingsApi.cancel(confirmBooking.id);
+      await loadBookings();
+    } catch {
+      setError('Kunde inte avboka. Försök igen.');
+    } finally {
+      setCancellingBooking(null);
+    }
+  }
+
+  const atBookingLimit = !isAdmin && myFutureCount >= 2;
 
   return (
     <div className="weekly-page">
@@ -167,8 +193,15 @@ export function WeeklyCalendarPage() {
 
       {atBookingLimit && (
         <div className="booking-limit-notice">
-          Du har redan 2 kommande bokningar. Avboka en för att kunna boka igen.{' '}
+          Du kan bara boka två tider. Avboka en för att kunna boka igen.{' '}
           <button className="link-btn" onClick={() => navigate('/my-bookings')}>Mina bokningar</button>
+        </div>
+      )}
+
+      {!auth.isAuthenticated && (
+        <div className="login-notice">
+          <button className="link-btn" onClick={() => auth.signinRedirect()}>Logga in</button>
+          {' '}för att boka en tid.
         </div>
       )}
 
@@ -210,9 +243,9 @@ export function WeeklyCalendarPage() {
                 return (
                   <div
                     key={`${di}-${hour}`}
-                    className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && !atBookingLimit ? ' slot-clickable' : ''}`}
+                    className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && auth.isAuthenticated && !atBookingLimit ? ' slot-clickable' : ''}`}
                     onClick={() => handleSlotClick(dateStr, hour)}
-                    role={state === 'free' && !atBookingLimit ? 'button' : undefined}
+                    role={state === 'free' && auth.isAuthenticated && !atBookingLimit ? 'button' : undefined}
                     title={
                       state === 'taken' && booking
                         ? `${booking.userName}${booking.userPhone ? ` · ${booking.userPhone}` : ''}`
@@ -220,19 +253,59 @@ export function WeeklyCalendarPage() {
                     }
                   >
                     {isLoading && <span className="slot-spinner">⏳</span>}
-                    {state === 'mine' && !isLoading && (
-                      <span className="slot-label">Du</span>
+                    {state === 'mine' && !isLoading && booking && (
+                      <span className="slot-label">
+                        <span>Du</span>
+                        <span className="slot-actions">
+                          <button
+                            className="slot-info-btn"
+                            onClick={e => { e.stopPropagation(); setInfoBooking(booking); }}
+                            title="Visa info"
+                          >ⓘ</button>
+                          <button
+                            className="slot-admin-cancel"
+                            onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
+                            disabled={cancellingBooking === booking.id}
+                            title="Avboka"
+                          >
+                            {cancellingBooking === booking.id ? '…' : '×'}
+                          </button>
+                        </span>
+                      </span>
                     )}
                     {state === 'taken' && !isLoading && booking && (
                       <span className="slot-label">
-                        <span className="slot-name">{booking.userName}</span>
-                        {booking.userPhone && (
-                          <span className="slot-phone">{booking.userPhone}</span>
-                        )}
+                        {auth.isAuthenticated
+                          ? <><span className="slot-name">{booking.userName}</span>
+                            {booking.userPhone && (
+                              <span className="slot-phone">{booking.userPhone}</span>
+                            )}
+                            <span className="slot-actions">
+                              <button
+                                className="slot-info-btn"
+                                onClick={e => { e.stopPropagation(); setInfoBooking(booking); }}
+                                title="Visa info"
+                              >ⓘ</button>
+                              {isAdmin && (
+                                <button
+                                  className="slot-admin-cancel"
+                                  onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
+                                  disabled={cancellingBooking === booking.id}
+                                  title="Avboka (admin)"
+                                >
+                                  {cancellingBooking === booking.id ? '…' : '×'}
+                                </button>
+                              )}
+                            </span></>
+                          : <span className="slot-name">Bokad</span>
+                        }
                       </span>
                     )}
-                    {state === 'free' && !isLoading && !atBookingLimit && (
-                      <span className="slot-free-icon">+</span>
+                    {state === 'free' && !isLoading && auth.isAuthenticated && !atBookingLimit && (
+                      <span className="slot-free-icon">
+                        <span className="slot-hover-time">{hour}:00</span>
+                        <span className="slot-plus">+</span>
+                      </span>
                     )}
                   </div>
                 );
@@ -248,6 +321,86 @@ export function WeeklyCalendarPage() {
         <span className="legend-item"><span className="legend-swatch swatch-taken" />Bokad</span>
         <span className="legend-item"><span className="legend-swatch swatch-past" />Passerad</span>
       </div>
+
+      {infoBooking && (
+        <div className="confirm-overlay" onClick={() => setInfoBooking(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <h3>Bokningsinformation</h3>
+            <div className="info-rows">
+              {(infoBooking.userFirstName || infoBooking.userLastName) ? (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Förnamn</span>
+                    <span>{infoBooking.userFirstName || '–'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Efternamn</span>
+                    <span>{infoBooking.userLastName || '–'}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="info-row">
+                  <span className="info-label">Namn</span>
+                  <span>{infoBooking.userName || '–'}</span>
+                </div>
+              )}
+              <div className="info-row">
+                <span className="info-label">Telefon</span>
+                <span>{infoBooking.userPhone || '–'}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Datum</span>
+                <span>📅 {infoBooking.date}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Tid</span>
+                <span>⏰ {infoBooking.startTime.slice(0, 5)}–{infoBooking.endTime.slice(0, 5)}</span>
+              </div>
+            </div>
+            <div className="confirm-actions">
+              <button className="btn-primary" onClick={() => setInfoBooking(null)}>Stäng</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmBooking && (
+        <div className="confirm-overlay" onClick={() => setConfirmBooking(null)}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <h3>Avboka bokning?</h3>
+            <div className="info-rows">
+              {confirmBooking.userId !== myUserId && (
+                <>
+                  <div className="info-row">
+                    <span className="info-label">Förnamn</span>
+                    <span>{confirmBooking.userFirstName || '–'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Efternamn</span>
+                    <span>{confirmBooking.userLastName || '–'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Telefon</span>
+                    <span>{confirmBooking.userPhone || '–'}</span>
+                  </div>
+                </>
+              )}
+              <div className="info-row">
+                <span className="info-label">Datum</span>
+                <span>📅 {confirmBooking.date}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Tid</span>
+                <span>⏰ {confirmBooking.startTime.slice(0, 5)}–{confirmBooking.endTime.slice(0, 5)}</span>
+              </div>
+            </div>
+            <div className="confirm-actions">
+              <button className="btn-danger" onClick={confirmAdminCancel}>Avboka</button>
+              <button className="btn-secondary" onClick={() => setConfirmBooking(null)}>Avbryt</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

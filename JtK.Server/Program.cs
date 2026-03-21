@@ -119,8 +119,9 @@ courtsApi.MapGet("/{id:int}", async (int id, AppDbContext db) =>
         : Results.NotFound());
 
 // Returns all bookings for a court in a date range (for the weekly calendar)
-courtsApi.MapGet("/{id:int}/bookings", async (int id, DateOnly from, DateOnly to, AppDbContext db) =>
+courtsApi.MapGet("/{id:int}/bookings", async (int id, DateOnly from, DateOnly to, ClaimsPrincipal user, AppDbContext db) =>
 {
+    var isAuthenticated = user.Identity?.IsAuthenticated == true;
     var bookings = await db.Bookings
         .Where(b => b.CourtId == id && b.Date >= from && b.Date <= to)
         .OrderBy(b => b.Date).ThenBy(b => b.StartTime)
@@ -130,15 +131,33 @@ courtsApi.MapGet("/{id:int}/bookings", async (int id, DateOnly from, DateOnly to
             b.Date,
             b.StartTime,
             b.EndTime,
-            b.UserId,
-            b.UserName,
-            b.UserPhone,
+            UserId = isAuthenticated ? b.UserId : string.Empty,
+            UserName = isAuthenticated ? b.UserName : string.Empty,
+            UserFirstName = isAuthenticated ? b.UserFirstName : string.Empty,
+            UserLastName = isAuthenticated ? b.UserLastName : string.Empty,
+            UserPhone = isAuthenticated ? b.UserPhone : string.Empty,
         })
         .ToListAsync();
     return Results.Ok(bookings);
-}).RequireAuthorization();
+});
 
 // --- Bookings endpoints (authenticated) ---
+
+// Keycloak puts realm roles in realm_access.roles in the JWT.
+static bool IsAdmin(ClaimsPrincipal user)
+{
+    var raw = user.FindFirstValue("realm_access");
+    if (raw is null) return false;
+    try
+    {
+        var doc = System.Text.Json.JsonDocument.Parse(raw);
+        if (doc.RootElement.TryGetProperty("roles", out var roles))
+            return roles.EnumerateArray().Any(r => r.GetString() == "admin");
+    }
+    catch { }
+    return false;
+}
+
 var bookingsApi = app.MapGroup("/api/bookings").RequireAuthorization();
 
 bookingsApi.MapGet("/", async (ClaimsPrincipal user, AppDbContext db) =>
@@ -159,6 +178,10 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
     var userName = user.FindFirstValue(ClaimTypes.Name)
                 ?? user.FindFirstValue("preferred_username")
                 ?? userId;
+    var userFirstName = user.FindFirstValue(ClaimTypes.GivenName)
+                     ?? user.FindFirstValue("given_name") ?? string.Empty;
+    var userLastName = user.FindFirstValue(ClaimTypes.Surname)
+                    ?? user.FindFirstValue("family_name") ?? string.Empty;
     var userPhone = user.FindFirstValue("phone_number") ?? string.Empty;
 
     var court = await db.Courts.FindAsync(req.CourtId);
@@ -175,12 +198,15 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
     if (req.Date < today || (req.Date == today && start <= nowTime))
         return Results.BadRequest("Cannot book a slot in the past.");
 
-    // Max 2 future bookings per user
-    var futureCount = await db.Bookings.CountAsync(b =>
-        b.UserId == userId &&
-        (b.Date > today || (b.Date == today && b.StartTime > nowTime)));
-    if (futureCount >= 2)
-        return Results.BadRequest("Du kan inte ha fler än 2 kommande bokningar.");
+    // Max 2 future bookings per user (admins are exempt)
+    if (!IsAdmin(user))
+    {
+        var futureCount = await db.Bookings.CountAsync(b =>
+            b.UserId == userId &&
+            (b.Date > today || (b.Date == today && b.StartTime > nowTime)));
+        if (futureCount >= 2)
+            return Results.BadRequest("Du kan inte ha fler än 2 kommande bokningar.");
+    }
 
     var overlap = await db.Bookings.AnyAsync(b =>
         b.CourtId == req.CourtId &&
@@ -195,6 +221,8 @@ bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, 
         CourtId = req.CourtId,
         UserId = userId,
         UserName = userName,
+        UserFirstName = userFirstName,
+        UserLastName = userLastName,
         UserPhone = userPhone,
         Date = req.Date,
         StartTime = start,
@@ -212,7 +240,7 @@ bookingsApi.MapDelete("/{id:int}", async (int id, ClaimsPrincipal user, AppDbCon
               ?? user.FindFirstValue("sub")!;
     var booking = await db.Bookings.FindAsync(id);
     if (booking is null) return Results.NotFound();
-    if (booking.UserId != userId) return Results.Forbid();
+    if (booking.UserId != userId && !IsAdmin(user)) return Results.Forbid();
 
     db.Bookings.Remove(booking);
     await db.SaveChangesAsync();

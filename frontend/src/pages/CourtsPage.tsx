@@ -11,9 +11,7 @@ export function CourtsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth.user?.access_token) {
-      setAuthToken(auth.user.access_token);
-    }
+    if (auth.user?.access_token) setAuthToken(auth.user.access_token);
     courtsApi.getAll()
       .then(setCourts)
       .catch(() => setError('Kunde inte hämta banor.'))

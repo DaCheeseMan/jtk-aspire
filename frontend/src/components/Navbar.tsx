@@ -15,9 +15,9 @@ export function Navbar() {
       </div>
       <div className="navbar-links">
         <Link to="/" className={isActive('/')}>Hem</Link>
+        <Link to="/courts" className={isActive('/courts')}>Banor</Link>
         {auth.isAuthenticated && (
           <>
-            <Link to="/courts" className={isActive('/courts')}>Banor</Link>
             <Link to="/my-bookings" className={isActive('/my-bookings')}>Mina Bokningar</Link>
             <Link to="/profile" className={isActive('/profile')}>Min Profil</Link>
           </>

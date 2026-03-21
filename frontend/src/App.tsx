@@ -38,12 +38,8 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/courts" element={
-            <ProtectedRoute><CourtsPage /></ProtectedRoute>
-          } />
-          <Route path="/book/:courtId" element={
-            <ProtectedRoute><WeeklyCalendarPage /></ProtectedRoute>
-          } />
+          <Route path="/courts" element={<CourtsPage />} />
+          <Route path="/book/:courtId" element={<WeeklyCalendarPage />} />
           <Route path="/my-bookings" element={
             <ProtectedRoute><MyBookingsPage /></ProtectedRoute>
           } />

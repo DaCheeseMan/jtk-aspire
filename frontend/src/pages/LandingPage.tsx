@@ -25,10 +25,10 @@ export function LandingPage() {
               <Link to="/courts" className="cta-btn primary">Boka en bana →</Link>
             ) : (
               <>
-                <button className="cta-btn primary" onClick={() => auth.signinRedirect()}>
+                <Link to="/courts" className="cta-btn primary">Se lediga tider →</Link>
+                <button className="cta-btn secondary" onClick={() => auth.signinRedirect()}>
                   Logga in & boka
                 </button>
-                <a href="#om-oss" className="cta-btn secondary">Läs mer</a>
               </>
             )}
           </div>
@@ -82,9 +82,12 @@ export function LandingPage() {
           {!auth.isAuthenticated && (
             <div className="courts-cta">
               <p>Logga in för att boka en bana</p>
-              <button className="cta-btn primary" onClick={() => auth.signinRedirect()}>
-                Logga in
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link to="/courts" className="cta-btn secondary">Se lediga tider</Link>
+                <button className="cta-btn primary" onClick={() => auth.signinRedirect()}>
+                  Logga in
+                </button>
+              </div>
             </div>
           )}
         </div>

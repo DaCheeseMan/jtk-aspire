@@ -72,6 +72,8 @@ export interface CourtBooking {
   endTime: string;
   userId: string;
   userName: string;
+  userFirstName: string;
+  userLastName: string;
   userPhone: string;
 }
 

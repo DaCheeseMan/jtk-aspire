@@ -51,6 +51,16 @@
   font-size: 0.95rem;
 }
 
+.login-notice {
+  background: #e8f4fd;
+  border: 1px solid #90c4e8;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: #1a3c5c;
+  font-size: 0.95rem;
+}
+
 .success-notice {
   background: #d4edda;
   border: 1px solid #28a745;
@@ -175,13 +185,34 @@
 }
 
 .slot-free-icon {
-  font-size: 1.2rem;
-  color: #b0c8b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   line-height: 1;
 }
 
-.slot-clickable:hover .slot-free-icon {
+.slot-plus {
+  font-size: 1.2rem;
+  color: #b0c8b8;
+  transition: color 0.15s;
+}
+
+.slot-hover-time {
+  font-size: 0.7rem;
+  font-weight: 600;
   color: #1a5c2e;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.slot-clickable:hover .slot-plus {
+  color: #1a5c2e;
+}
+
+.slot-clickable:hover .slot-hover-time {
+  opacity: 1;
 }
 
 .slot-mine {
@@ -221,6 +252,29 @@
   color: #8b2020;
   font-size: 0.7rem;
   opacity: 0.85;
+}
+
+.slot-admin-cancel {
+  display: block;
+  margin-top: 2px;
+  padding: 0 4px;
+  background: rgba(139, 32, 32, 0.15);
+  border: 1px solid rgba(139, 32, 32, 0.4);
+  border-radius: 3px;
+  color: #8b2020;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.slot-admin-cancel:hover:not(:disabled) {
+  background: rgba(139, 32, 32, 0.3);
+}
+
+.slot-admin-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .slot-loading {
@@ -327,4 +381,103 @@
     min-width: 0;
     font-size: 0.85rem;
   }
+}
+
+/* ── Admin cancel confirmation dialog ───────────────────── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.confirm-dialog {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.75rem 2rem;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.confirm-dialog h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  color: #1a3c2a;
+}
+
+.confirm-dialog p {
+  margin: 0 0 0.4rem;
+  color: #333;
+}
+
+
+.confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn-danger {
+  background: #8b2020;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover { background: #6e1919; }
+
+/* ── Slot action buttons (info + cancel) ────────────────── */
+.slot-actions {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+  justify-content: center;
+}
+
+.slot-info-btn {
+  padding: 0 4px;
+  background: rgba(26, 92, 46, 0.12);
+  border: 1px solid rgba(26, 92, 46, 0.35);
+  border-radius: 3px;
+  color: #1a5c2e;
+  font-size: 0.75rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.slot-info-btn:hover {
+  background: rgba(26, 92, 46, 0.25);
+}
+
+/* ── Info dialog rows ───────────────────────────────────── */
+.info-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.info-row {
+  display: contents;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.info-row span:last-child {
+  color: #1a1a1a;
+  font-size: 0.95rem;
 }

@@ -2,7 +2,7 @@
   "realm": "jtk",
   "displayName": "Jonsereds TK",
   "enabled": true,
-  "registrationAllowed": true,
+  "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,

@@ -22,7 +22,7 @@ if (builder.ExecutionContext.IsRunMode)
     keycloak.WithDataVolume()
             .WithRealmImport("../realms");
 
-    appDb = builder.AddPostgres("appdb").AddDatabase("jtkdb");
+    appDb = builder.AddPostgres("appdb").WithDataVolume().AddDatabase("jtkdb");
 }
 else
 {

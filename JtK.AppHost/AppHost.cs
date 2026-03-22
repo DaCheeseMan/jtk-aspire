@@ -30,16 +30,17 @@ else
     // database names are predictable and not derived from auto-generated resource names.
     builder.AddAzureContainerAppEnvironment("cae");
 
+    // Single shared PostgreSQL server — both Keycloak and the app use separate databases on it.
     var postgresUser = builder.AddParameter("PostgresUser", value: "jtk");
     var postgresPassword = builder.AddParameter("PostgresPassword", secret: true, value: "Password1!");
 
-    var keycloakPostgres = builder.AddAzurePostgresFlexibleServer("keycloak-postgres")
+    var sharedPostgres = builder.AddAzurePostgresFlexibleServer("postgres")
         .WithPasswordAuthentication(postgresUser, postgresPassword);
 
-    var keycloakDb = keycloakPostgres.AddDatabase("keycloakDB", "keycloak");
+    var keycloakDb = sharedPostgres.AddDatabase("keycloakDB", "keycloak");
 
     var keycloakDbUrl = ReferenceExpression.Create(
-        $"jdbc:postgresql://{keycloakPostgres.GetOutput("hostName")}/{keycloakDb.Resource.DatabaseName}"
+        $"jdbc:postgresql://{sharedPostgres.GetOutput("hostName")}/{keycloakDb.Resource.DatabaseName}"
     );
 
     keycloak
@@ -56,13 +57,7 @@ else
         keycloak.WithImageRegistry(acrEndpoint);
     }
 
-    // App database — explicit server so the database is always named "jtkdb"
-    var appDbUser = builder.AddParameter("AppDbUser", value: "jtk");
-    var appDbPassword = builder.AddParameter("AppDbPassword", secret: true, value: "Password1!");
-
-    appDb = builder.AddAzurePostgresFlexibleServer("appdb")
-        .WithPasswordAuthentication(appDbUser, appDbPassword)
-        .AddDatabase("jtkdb");
+    appDb = sharedPostgres.AddDatabase("jtkdb");
 }
 
 // API server

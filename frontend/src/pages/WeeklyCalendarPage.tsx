@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { bookingsApi, courtsApi, setAuthToken, type Court, type CourtBooking } from '../api/client';
+import { bookingsApi, courtsApi, getUserRoles, setAuthToken, type Court, type CourtBooking } from '../api/client';
 import './WeeklyCalendarPage.css';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 07–22
@@ -57,14 +57,9 @@ export function WeeklyCalendarPage() {
   const [confirmedSlot, setConfirmedSlot] = useState<string | null>(null); // "YYYY-MM-DD-HH"
 
   const myUserId = auth.user?.profile.sub;
-  const isAdmin = (() => {
-    try {
-      const payload = JSON.parse(atob(auth.user!.access_token.split('.')[1]));
-      return (payload?.realm_access?.roles ?? []).includes('admin');
-    } catch {
-      return false;
-    }
-  })();
+  const userRoles = getUserRoles(auth.user?.access_token);
+  const isAdmin = userRoles.includes('admin');
+  const isMember = userRoles.includes('member') || isAdmin;
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekFrom = toDateStr(weekDays[0]);
@@ -124,6 +119,7 @@ export function WeeklyCalendarPage() {
     const { state } = getSlotInfo(dateStr, hour);
 
     if (state !== 'free') return;
+    if (!isMember) return;
     if (!isAdmin && myFutureCount >= 2) {
       setError('Du kan inte ha fler än 2 kommande bokningar.');
       return;
@@ -198,6 +194,12 @@ export function WeeklyCalendarPage() {
         </div>
       )}
 
+      {auth.isAuthenticated && !isMember && (
+        <div className="login-notice">
+          Du behöver rollen <strong>Medlem</strong> för att kunna boka tider. Kontakta en administratör.
+        </div>
+      )}
+
       {!auth.isAuthenticated && (
         <div className="login-notice">
           <button className="link-btn" onClick={() => auth.signinRedirect()}>Logga in</button>
@@ -243,9 +245,9 @@ export function WeeklyCalendarPage() {
                 return (
                   <div
                     key={`${di}-${hour}`}
-                    className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && auth.isAuthenticated && !atBookingLimit ? ' slot-clickable' : ''}`}
+                    className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? ' slot-clickable' : ''}`}
                     onClick={() => handleSlotClick(dateStr, hour)}
-                    role={state === 'free' && auth.isAuthenticated && !atBookingLimit ? 'button' : undefined}
+                    role={state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? 'button' : undefined}
                     title={
                       state === 'taken' && booking
                         ? `${booking.userName}${booking.userPhone ? ` · ${booking.userPhone}` : ''}`

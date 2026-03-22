@@ -19,9 +19,7 @@
       }
     ]
   },
-  "defaultRoles": [
-    "member"
-  ],
+  "defaultRoles": [],
   "clients": [
     {
       "clientId": "jtk-web",

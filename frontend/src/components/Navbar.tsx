@@ -1,10 +1,13 @@
 import { useAuth } from 'react-oidc-context';
 import { Link, useLocation } from 'react-router-dom';
+import { getUserRoles } from '../api/client';
 import './Navbar.css';
 
 export function Navbar() {
   const auth = useAuth();
   const location = useLocation();
+  const userRoles = getUserRoles(auth.user?.access_token);
+  const isAdmin = userRoles.includes('admin');
 
   const isActive = (path: string) => location.pathname === path ? 'active' : '';
 
@@ -20,6 +23,9 @@ export function Navbar() {
           <>
             <Link to="/my-bookings" className={isActive('/my-bookings')}>Mina Bokningar</Link>
             <Link to="/profile" className={isActive('/profile')}>Min Profil</Link>
+            {isAdmin && (
+              <Link to="/admin/users" className={isActive('/admin/users')}>Administrera</Link>
+            )}
           </>
         )}
       </div>

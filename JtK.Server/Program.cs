@@ -158,6 +158,21 @@ static bool IsAdmin(ClaimsPrincipal user)
     return false;
 }
 
+// Admins are implicitly members too.
+static bool IsMember(ClaimsPrincipal user)
+{
+    var raw = user.FindFirstValue("realm_access");
+    if (raw is null) return false;
+    try
+    {
+        var doc = System.Text.Json.JsonDocument.Parse(raw);
+        if (doc.RootElement.TryGetProperty("roles", out var roles))
+            return roles.EnumerateArray().Any(r => r.GetString() is "member" or "admin");
+    }
+    catch { }
+    return false;
+}
+
 var bookingsApi = app.MapGroup("/api/bookings").RequireAuthorization();
 
 bookingsApi.MapGet("/", async (ClaimsPrincipal user, AppDbContext db) =>
@@ -173,6 +188,9 @@ bookingsApi.MapGet("/", async (ClaimsPrincipal user, AppDbContext db) =>
 
 bookingsApi.MapPost("/", async (CreateBookingRequest req, ClaimsPrincipal user, AppDbContext db) =>
 {
+    if (!IsMember(user))
+        return Results.Forbid();
+
     var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
               ?? user.FindFirstValue("sub")!;
     var userName = user.FindFirstValue(ClaimTypes.Name)
@@ -268,8 +286,7 @@ profileApi.MapGet("/", async (ClaimsPrincipal user, IConfiguration config, IWebH
     var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
     if (adminToken is null) return Results.StatusCode(502);
 
-    var adminUrl = config["Keycloak:AdminUrl"];
-    if (!env.IsDevelopment()) adminUrl = adminUrl?.Replace("http://", "https://");
+    var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
     var userUrl = $"{adminUrl}/admin/realms/jtk/users/{userId}";
     var client = httpClientFactory.CreateClient("keycloak-account");
     var req = new HttpRequestMessage(HttpMethod.Get, userUrl);
@@ -294,8 +311,7 @@ profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, 
     var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
     if (adminToken is null) return Results.StatusCode(502);
 
-    var adminUrl = config["Keycloak:AdminUrl"];
-    if (!env.IsDevelopment()) adminUrl = adminUrl?.Replace("http://", "https://");
+    var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
     var userUrl = $"{adminUrl}/admin/realms/jtk/users/{userId}";
     var client = httpClientFactory.CreateClient("keycloak-account");
 
@@ -330,6 +346,196 @@ profileApi.MapPost("/", async (ClaimsPrincipal user, ProfileUpdateRequest body, 
         : Results.StatusCode((int)putRes.StatusCode);
 });
 
+// --- Admin endpoints (admin role required) ---
+var adminGroup = app.MapGroup("/api/admin").RequireAuthorization();
+
+adminGroup.MapGet("/users", async (ClaimsPrincipal user, IConfiguration config, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) =>
+{
+    if (!IsAdmin(user)) return Results.Forbid();
+
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
+    if (adminToken is null) return Results.StatusCode(502);
+
+    var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
+    var client = httpClientFactory.CreateClient("keycloak-account");
+
+    var usersReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/users?max=1000");
+    usersReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    var usersRes = await client.SendAsync(usersReq);
+    if (!usersRes.IsSuccessStatusCode) return Results.StatusCode((int)usersRes.StatusCode);
+
+    var users = await usersRes.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>();
+
+    // Fetch realm roles for each user in parallel
+    var usersWithRoles = await Task.WhenAll((users ?? []).Select(async u =>
+    {
+        var rolesClient = httpClientFactory.CreateClient("keycloak-account");
+        var rolesReq = new HttpRequestMessage(HttpMethod.Get,
+            $"{adminUrl}/admin/realms/jtk/users/{u.Id}/role-mappings/realm");
+        rolesReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var rolesRes = await rolesClient.SendAsync(rolesReq);
+        var roles = rolesRes.IsSuccessStatusCode
+            ? (await rolesRes.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>() ?? [])
+                .Where(r => r.Name == "member" || r.Name == "admin")
+                .Select(r => r.Name!)
+                .ToList()
+            : new List<string>();
+        return new
+        {
+            id = u.Id,
+            username = u.Username,
+            firstName = u.FirstName,
+            lastName = u.LastName,
+            email = u.Email,
+            phoneNumber = u.Attributes?.GetValueOrDefault("phone_number")?[0],
+            roles,
+        };
+    }));
+
+    return Results.Ok(usersWithRoles);
+});
+
+adminGroup.MapPost("/users", async (ClaimsPrincipal user, AdminCreateUserRequest body, IConfiguration config, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) =>
+{
+    if (!IsAdmin(user)) return Results.Forbid();
+
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
+    if (adminToken is null) return Results.StatusCode(502);
+
+    var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
+    var client = httpClientFactory.CreateClient("keycloak-account");
+
+    var attrs = new Dictionary<string, List<string>>();
+    if (!string.IsNullOrWhiteSpace(body.PhoneNumber))
+        attrs["phone_number"] = [body.PhoneNumber];
+
+    var newUser = new KeycloakUserRepresentation
+    {
+        Username = body.Email,
+        Email = body.Email,
+        FirstName = body.FirstName,
+        LastName = body.LastName,
+        Enabled = true,
+        Attributes = attrs.Count > 0 ? attrs : null,
+        Credentials = [new KeycloakCredentialRepresentation { Value = body.TemporaryPassword, Temporary = true }],
+    };
+
+    var createReq = new HttpRequestMessage(HttpMethod.Post, $"{adminUrl}/admin/realms/jtk/users");
+    createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    createReq.Content = JsonContent.Create(newUser);
+    var createRes = await client.SendAsync(createReq);
+    if (!createRes.IsSuccessStatusCode) return Results.StatusCode((int)createRes.StatusCode);
+
+    // Keycloak returns the new user URL in the Location header
+    var newUserId = createRes.Headers.Location?.Segments.Last();
+    if (newUserId is null) return Results.StatusCode(500);
+
+    // Assign roles if requested
+    if (body.Roles is { Count: > 0 })
+    {
+        var allRolesReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/roles");
+        allRolesReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var allRolesRes = await client.SendAsync(allRolesReq);
+        var allRoles = allRolesRes.IsSuccessStatusCode
+            ? await allRolesRes.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>() ?? []
+            : [];
+
+        var toAssign = allRoles.Where(r => body.Roles.Contains(r.Name!)).ToList();
+        if (toAssign.Count > 0)
+        {
+            var assignReq = new HttpRequestMessage(HttpMethod.Post,
+                $"{adminUrl}/admin/realms/jtk/users/{newUserId}/role-mappings/realm");
+            assignReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            assignReq.Content = JsonContent.Create(toAssign);
+            await client.SendAsync(assignReq);
+        }
+    }
+
+    return Results.Created($"/api/admin/users/{newUserId}", new { id = newUserId });
+});
+
+adminGroup.MapPut("/users/{userId}", async (string userId, ClaimsPrincipal user, AdminUpdateUserRequest body, IConfiguration config, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) =>
+{
+    if (!IsAdmin(user)) return Results.Forbid();
+
+    var adminToken = await GetKeycloakAdminTokenAsync(config, httpClientFactory, env.IsDevelopment());
+    if (adminToken is null) return Results.StatusCode(502);
+
+    var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
+    var client = httpClientFactory.CreateClient("keycloak-account");
+
+    // Fetch existing user to merge attributes
+    var getReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/users/{userId}");
+    getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    var getRes = await client.SendAsync(getReq);
+    var existing = getRes.IsSuccessStatusCode
+        ? await getRes.Content.ReadFromJsonAsync<KeycloakUserRepresentation>()
+        : null;
+
+    var mergedAttrs = existing?.Attributes ?? new Dictionary<string, List<string>>();
+    if (body.PhoneNumber is not null)
+        mergedAttrs["phone_number"] = [body.PhoneNumber];
+
+    var update = new KeycloakUserRepresentation
+    {
+        FirstName = body.FirstName,
+        LastName = body.LastName,
+        Email = body.Email,
+        Attributes = mergedAttrs,
+    };
+
+    var putReq = new HttpRequestMessage(HttpMethod.Put, $"{adminUrl}/admin/realms/jtk/users/{userId}");
+    putReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    putReq.Content = JsonContent.Create(update);
+    var putRes = await client.SendAsync(putReq);
+    if (!putRes.IsSuccessStatusCode) return Results.StatusCode((int)putRes.StatusCode);
+
+    // Diff current roles vs desired and add/remove accordingly
+    var currentRolesReq = new HttpRequestMessage(HttpMethod.Get,
+        $"{adminUrl}/admin/realms/jtk/users/{userId}/role-mappings/realm");
+    currentRolesReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+    var currentRolesRes = await client.SendAsync(currentRolesReq);
+    var currentRoles = currentRolesRes.IsSuccessStatusCode
+        ? (await currentRolesRes.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>() ?? [])
+            .Where(r => r.Name == "member" || r.Name == "admin").ToList()
+        : [];
+
+    var currentNames = currentRoles.Select(r => r.Name!).ToHashSet();
+    var desiredNames = body.Roles.ToHashSet();
+    var toAdd = desiredNames.Except(currentNames).ToList();
+    var toRemove = currentRoles.Where(r => !desiredNames.Contains(r.Name!)).ToList();
+
+    if (toAdd.Count > 0)
+    {
+        var allRolesReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/roles");
+        allRolesReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var allRolesRes = await client.SendAsync(allRolesReq);
+        var allRoles = allRolesRes.IsSuccessStatusCode
+            ? await allRolesRes.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>() ?? []
+            : [];
+        var addObjs = allRoles.Where(r => toAdd.Contains(r.Name!)).ToList();
+        if (addObjs.Count > 0)
+        {
+            var addReq = new HttpRequestMessage(HttpMethod.Post,
+                $"{adminUrl}/admin/realms/jtk/users/{userId}/role-mappings/realm");
+            addReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            addReq.Content = JsonContent.Create(addObjs);
+            await client.SendAsync(addReq);
+        }
+    }
+
+    if (toRemove.Count > 0)
+    {
+        var removeReq = new HttpRequestMessage(HttpMethod.Delete,
+            $"{adminUrl}/admin/realms/jtk/users/{userId}/role-mappings/realm");
+        removeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        removeReq.Content = JsonContent.Create(toRemove);
+        await client.SendAsync(removeReq);
+    }
+
+    return Results.NoContent();
+});
+
 app.MapDefaultEndpoints();
 app.UseFileServer();
 
@@ -360,6 +566,12 @@ static async Task<string?> GetKeycloakAdminTokenAsync(IConfiguration config, IHt
     return json.GetProperty("access_token").GetString();
 }
 
+static string GetKeycloakAdminUrl(IConfiguration config, bool isDevelopment)
+{
+    var url = config["Keycloak:AdminUrl"] ?? "";
+    return isDevelopment ? url : url.Replace("http://", "https://");
+}
+
 record CreateBookingRequest(int CourtId, DateOnly Date, int StartHour);
 record ProfileUpdateRequest(
     string? FirstName,
@@ -369,6 +581,12 @@ record ProfileUpdateRequest(
 
 class KeycloakUserRepresentation
 {
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string? Id { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
+    public string? Username { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = true;
     [System.Text.Json.Serialization.JsonPropertyName("firstName")]
     public string? FirstName { get; set; }
     [System.Text.Json.Serialization.JsonPropertyName("lastName")]
@@ -377,6 +595,47 @@ class KeycloakUserRepresentation
     public string? Email { get; set; }
     [System.Text.Json.Serialization.JsonPropertyName("attributes")]
     public Dictionary<string, List<string>>? Attributes { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("credentials")]
+    public List<KeycloakCredentialRepresentation>? Credentials { get; set; }
 }
+
+class KeycloakCredentialRepresentation
+{
+    [System.Text.Json.Serialization.JsonPropertyName("type")]
+    public string Type { get; set; } = "password";
+    [System.Text.Json.Serialization.JsonPropertyName("value")]
+    public string Value { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("temporary")]
+    public bool Temporary { get; set; } = true;
+}
+
+class KeycloakRoleRepresentation
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string? Id { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("name")]
+    public string? Name { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("composite")]
+    public bool Composite { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("clientRole")]
+    public bool ClientRole { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("containerId")]
+    public string? ContainerId { get; set; }
+}
+
+record AdminCreateUserRequest(
+    string? FirstName,
+    string? LastName,
+    string Email,
+    string? PhoneNumber,
+    string TemporaryPassword,
+    List<string>? Roles);
+
+record AdminUpdateUserRequest(
+    string? FirstName,
+    string? LastName,
+    string? Email,
+    string? PhoneNumber,
+    List<string> Roles);
 
 

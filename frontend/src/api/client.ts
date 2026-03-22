@@ -107,3 +107,47 @@ export const profileApi = {
   get: () => apiClient.get<UserProfile>('/profile').then(r => r.data),
   update: (profile: UserProfile) => apiClient.post<void>('/profile', profile),
 };
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  roles: string[];
+}
+
+export interface AdminCreateUserRequest {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phoneNumber?: string;
+  temporaryPassword: string;
+  roles: string[];
+}
+
+export interface AdminUpdateUserRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  roles: string[];
+}
+
+export const adminApi = {
+  getUsers: () => apiClient.get<AdminUser[]>('/admin/users').then(r => r.data),
+  createUser: (req: AdminCreateUserRequest) => apiClient.post<{ id: string }>('/admin/users', req).then(r => r.data),
+  updateUser: (id: string, req: AdminUpdateUserRequest) => apiClient.put<void>(`/admin/users/${id}`, req),
+};
+
+// Parse admin role from the JWT access token (realm_access is in the access token, not the ID token)
+export function getUserRoles(accessToken: string | undefined): string[] {
+  if (!accessToken) return [];
+  try {
+    const payload = JSON.parse(atob(accessToken.split('.')[1]));
+    return (payload?.realm_access?.roles as string[]) ?? [];
+  } catch {
+    return [];
+  }
+}

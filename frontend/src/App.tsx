@@ -8,6 +8,7 @@ import { CourtsPage } from './pages/CourtsPage'
 import { WeeklyCalendarPage } from './pages/WeeklyCalendarPage'
 import { MyBookingsPage } from './pages/MyBookingsPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { setAuthToken, setupAuthHandlers } from './api/client'
 import './App.css'
 
@@ -45,6 +46,9 @@ function App() {
           } />
           <Route path="/profile" element={
             <ProtectedRoute><ProfilePage /></ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute><AdminUsersPage /></ProtectedRoute>
           } />
         </Routes>
       </main>

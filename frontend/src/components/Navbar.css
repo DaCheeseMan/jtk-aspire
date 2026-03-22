@@ -85,3 +85,106 @@
 .btn-outline:hover {
   background: rgba(255,255,255,0.1);
 }
+
+/* ── Hamburger ────────────────────────────────────────── */
+.navbar-hamburger {
+  display: none;
+}
+
+/* ── Mobile menu ─────────────────────────────────────── */
+.navbar-mobile-menu {
+  display: none;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 767px) {
+  .navbar-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+
+  .navbar-hamburger:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .navbar-links {
+    display: none;
+  }
+
+  .navbar-auth {
+    display: none;
+  }
+
+  .navbar-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    background: #1a5c2e;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .navbar-mobile-menu a {
+    color: white;
+    text-decoration: none;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    display: block;
+    transition: background 0.15s;
+  }
+
+  .navbar-mobile-menu a:hover,
+  .navbar-mobile-menu a.active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .navbar-mobile-auth {
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .navbar-mobile-auth .user-name {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    color: white;
+  }
+
+  .navbar-mobile-auth .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .navbar-hamburger {
+    display: none;
+  }
+
+  .navbar-mobile-menu {
+    display: none;
+  }
+}

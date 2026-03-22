@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { bookingsApi, courtsApi, getUserRoles, setAuthToken, type Court, type CourtBooking } from '../api/client';
@@ -6,6 +6,16 @@ import './WeeklyCalendarPage.css';
 
 const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 07–22
 const DAY_NAMES = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return isMobile;
+}
 
 function getMondayOf(date: Date): Date {
   const d = new Date(date);
@@ -61,6 +71,14 @@ export function WeeklyCalendarPage() {
   const isAdmin = userRoles.includes('admin');
   const isMember = userRoles.includes('member') || isAdmin;
 
+  const isMobile = useIsMobile();
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
+    const monday = getMondayOf(new Date());
+    const today = new Date();
+    const diff = Math.floor((today.getTime() - monday.getTime()) / 86400000);
+    return diff >= 0 && diff <= 6 ? diff : 0;
+  });
+
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekFrom = toDateStr(weekDays[0]);
   const weekTo = toDateStr(weekDays[6]);
@@ -91,6 +109,12 @@ export function WeeklyCalendarPage() {
       courtsApi.getById(Number(courtId)).then(setCourt).catch(() => setError('Bana hittades inte.'));
     }
   }, [auth.user, courtId]);
+
+  // Reset selected day when navigating to a different week
+  useEffect(() => {
+    const idx = weekDays.findIndex(d => toDateStr(d) === toDateStr(new Date()));
+    setSelectedDayIndex(idx >= 0 ? idx : 0);
+  }, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadBookings();
@@ -216,105 +240,130 @@ export function WeeklyCalendarPage() {
         </div>
       )}
 
-      <div className="calendar-scroll">
-        <div className="calendar-grid">
-          {/* Header row */}
-          <div className="time-header" />
+      {isMobile && (
+        <div className="day-picker">
           {weekDays.map((day, i) => {
             const ds = toDateStr(day);
             const todayStr = toDateStr(new Date());
             return (
-              <div key={i} className={`day-header${ds === todayStr ? ' today' : ''}`}>
-                <span className="day-name">{DAY_NAMES[i]}</span>
-                <span className="day-date">{formatDate(day)}</span>
-              </div>
+              <button
+                key={i}
+                className={`day-chip${selectedDayIndex === i ? ' day-chip--active' : ''}${ds === todayStr ? ' day-chip--today' : ''}`}
+                onClick={() => setSelectedDayIndex(i)}
+              >
+                <span className="day-chip-name">{DAY_NAMES[i]}</span>
+                <span className="day-chip-date">{formatDate(day)}</span>
+              </button>
             );
           })}
+        </div>
+      )}
 
-          {/* Time rows */}
-          {HOURS.map(hour => (
-            <>
-              <div key={`label-${hour}`} className="time-label">{hour}:00</div>
-              {weekDays.map((day, di) => {
-                const dateStr = toDateStr(day);
-                const slotKey = `${dateStr}-${hour}`;
-                const { state, booking } = getSlotInfo(dateStr, hour);
-                const isLoading = loadingSlot === slotKey;
-                const isConfirmed = confirmedSlot === slotKey;
-
+      <div className="calendar-scroll">
+        {(() => {
+          const visibleDays = isMobile ? [weekDays[selectedDayIndex]] : weekDays;
+          return (
+            <div className={`calendar-grid${isMobile ? ' calendar-grid--mobile' : ''}`}>
+              {/* Header row */}
+              <div className="time-header" />
+              {visibleDays.map((day, i) => {
+                const ds = toDateStr(day);
+                const todayStr = toDateStr(new Date());
+                const originalIdx = isMobile ? selectedDayIndex : i;
                 return (
-                  <div
-                    key={`${di}-${hour}`}
-                    className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? ' slot-clickable' : ''}`}
-                    onClick={() => handleSlotClick(dateStr, hour)}
-                    role={state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? 'button' : undefined}
-                    title={
-                      state === 'taken' && booking
-                        ? `${booking.userName}${booking.userPhone ? ` · ${booking.userPhone}` : ''}`
-                        : undefined
-                    }
-                  >
-                    {isLoading && <span className="slot-spinner">⏳</span>}
-                    {state === 'mine' && !isLoading && booking && (
-                      <span className="slot-label">
-                        <span>Du</span>
-                        <span className="slot-actions">
-                          <button
-                            className="slot-info-btn"
-                            onClick={e => { e.stopPropagation(); setInfoBooking(booking); }}
-                            title="Visa info"
-                          >ⓘ</button>
-                          <button
-                            className="slot-admin-cancel"
-                            onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
-                            disabled={cancellingBooking === booking.id}
-                            title="Avboka"
-                          >
-                            {cancellingBooking === booking.id ? '…' : '×'}
-                          </button>
-                        </span>
-                      </span>
-                    )}
-                    {state === 'taken' && !isLoading && booking && (
-                      <span className="slot-label">
-                        {auth.isAuthenticated
-                          ? <><span className="slot-name">{booking.userName}</span>
-                            {booking.userPhone && (
-                              <span className="slot-phone">{booking.userPhone}</span>
-                            )}
+                  <div key={i} className={`day-header${ds === todayStr ? ' today' : ''}`}>
+                    <span className="day-name">{DAY_NAMES[originalIdx]}</span>
+                    <span className="day-date">{formatDate(day)}</span>
+                  </div>
+                );
+              })}
+
+              {/* Time rows */}
+              {HOURS.map(hour => (
+                <React.Fragment key={hour}>
+                  <div className="time-label">{hour}:00</div>
+                  {visibleDays.map((day, di) => {
+                    const dateStr = toDateStr(day);
+                    const slotKey = `${dateStr}-${hour}`;
+                    const { state, booking } = getSlotInfo(dateStr, hour);
+                    const isLoading = loadingSlot === slotKey;
+                    const isConfirmed = confirmedSlot === slotKey;
+
+                    return (
+                      <div
+                        key={`${di}-${hour}`}
+                        className={`slot slot-${state}${isLoading ? ' slot-loading' : ''}${isConfirmed ? ' slot-confirmed' : ''}${state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? ' slot-clickable' : ''}`}
+                        onClick={() => handleSlotClick(dateStr, hour)}
+                        role={state === 'free' && auth.isAuthenticated && isMember && !atBookingLimit ? 'button' : undefined}
+                        title={
+                          state === 'taken' && booking
+                            ? `${booking.userName}${booking.userPhone ? ` · ${booking.userPhone}` : ''}`
+                            : undefined
+                        }
+                      >
+                        {isLoading && <span className="slot-spinner">⏳</span>}
+                        {state === 'mine' && !isLoading && booking && (
+                          <span className="slot-label">
+                            <span>Du</span>
                             <span className="slot-actions">
                               <button
                                 className="slot-info-btn"
                                 onClick={e => { e.stopPropagation(); setInfoBooking(booking); }}
                                 title="Visa info"
                               >ⓘ</button>
-                              {isAdmin && (
-                                <button
-                                  className="slot-admin-cancel"
-                                  onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
-                                  disabled={cancellingBooking === booking.id}
-                                  title="Avboka (admin)"
-                                >
-                                  {cancellingBooking === booking.id ? '…' : '×'}
-                                </button>
-                              )}
-                            </span></>
-                          : <span className="slot-name">Bokad</span>
-                        }
-                      </span>
-                    )}
-                    {state === 'free' && !isLoading && auth.isAuthenticated && !atBookingLimit && (
-                      <span className="slot-free-icon">
-                        <span className="slot-hover-time">{hour}:00</span>
-                        <span className="slot-plus">+</span>
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </>
-          ))}
-        </div>
+                              <button
+                                className="slot-admin-cancel"
+                                onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
+                                disabled={cancellingBooking === booking.id}
+                                title="Avboka"
+                              >
+                                {cancellingBooking === booking.id ? '…' : '×'}
+                              </button>
+                            </span>
+                          </span>
+                        )}
+                        {state === 'taken' && !isLoading && booking && (
+                          <span className="slot-label">
+                            {auth.isAuthenticated
+                              ? <><span className="slot-name">{booking.userName}</span>
+                                {booking.userPhone && (
+                                  <span className="slot-phone">{booking.userPhone}</span>
+                                )}
+                                <span className="slot-actions">
+                                  <button
+                                    className="slot-info-btn"
+                                    onClick={e => { e.stopPropagation(); setInfoBooking(booking); }}
+                                    title="Visa info"
+                                  >ⓘ</button>
+                                  {isAdmin && (
+                                    <button
+                                      className="slot-admin-cancel"
+                                      onClick={e => { e.stopPropagation(); setConfirmBooking(booking); }}
+                                      disabled={cancellingBooking === booking.id}
+                                      title="Avboka (admin)"
+                                    >
+                                      {cancellingBooking === booking.id ? '…' : '×'}
+                                    </button>
+                                  )}
+                                </span></>
+                              : <span className="slot-name">Bokad</span>
+                            }
+                          </span>
+                        )}
+                        {state === 'free' && !isLoading && auth.isAuthenticated && !atBookingLimit && (
+                          <span className="slot-free-icon">
+                            <span className="slot-hover-time">{hour}:00</span>
+                            <span className="slot-plus">+</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="calendar-legend">

@@ -53,3 +53,11 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Ensure minimum touch target size for interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

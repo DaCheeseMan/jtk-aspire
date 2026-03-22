@@ -383,6 +383,69 @@
   }
 }
 
+/* ── Mobile single-day grid ──────────────────────────── */
+.calendar-grid--mobile {
+  grid-template-columns: 3.5rem 1fr;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .slot {
+    min-height: 3.5rem;
+  }
+  .time-label {
+    font-size: 0.7rem;
+  }
+}
+
+/* ── Day picker ──────────────────────────────────────── */
+.day-picker {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+.day-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  border: 1.5px solid #dde8e0;
+  background: white;
+  cursor: pointer;
+  min-width: 52px;
+  min-height: 44px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.day-chip--active {
+  background: #1a5c2e;
+  border-color: #1a5c2e;
+  color: white;
+}
+
+.day-chip--today:not(.day-chip--active) {
+  border-color: #1a5c2e;
+  color: #1a5c2e;
+}
+
+.day-chip-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.day-chip-date {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-top: 0.1rem;
+}
+
 /* ── Admin cancel confirmation dialog ───────────────────── */
 .confirm-overlay {
   position: fixed;

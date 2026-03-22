@@ -121,3 +121,21 @@
 }
 
 .loading { display: flex; justify-content: center; padding: 3rem; color: #666; }
+
+@media (max-width: 768px) {
+  .my-bookings-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .booking-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .cancel-btn {
+    width: 100%;
+    padding: 0.7rem 1rem;
+  }
+}

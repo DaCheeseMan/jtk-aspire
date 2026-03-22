@@ -31,3 +31,8 @@ body {
 }
 
 .app-error { color: #c62828; }
+
+/* Smooth scrolling for all pages */
+html {
+  scroll-behavior: smooth;
+}

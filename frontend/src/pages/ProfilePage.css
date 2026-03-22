@@ -40,6 +40,21 @@
   }
 }
 
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .profile-form {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .save-btn {
+    width: 100%;
+    align-self: stretch;
+  }
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

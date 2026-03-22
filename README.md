@@ -90,7 +90,7 @@ azd deploy
 
 `azd provision` will prompt for:
 - Azure subscription + region
-- Secret parameters: **KeycloakPassword**, **PostgresUser**, **PostgresPassword**, **AppDbUser**, **AppDbPassword**
+- Secret parameters: **KeycloakPassword**, **PostgresUser**, **PostgresPassword**
 
 Subsequent deploys (after code changes)
 
@@ -100,7 +100,7 @@ azd deploy      # re-packages and redeploys; skips infrastructure provisioning
 
 ### After first deploy — Keycloak setup (required)
 
-Keycloak starts with an empty database in Azure. The realm must be imported manually once after the first `azd up`:
+Keycloak starts with an empty database in Azure. The realm must be imported manually once after the first deploy:
 
 1. Find the Keycloak URL in the Azure Portal → Container Apps → **keycloak** → Application URL  
    (format: `https://keycloak.<env>.<region>.azurecontainerapps.io`)

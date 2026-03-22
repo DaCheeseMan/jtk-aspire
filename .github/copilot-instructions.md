@@ -74,6 +74,7 @@ dotnet ef database update --project JtK.Server
 - **Protected routes** use `<ProtectedRoute>` wrapper component — wrap any route that requires authentication.
 - API types (`Court`, `Booking`) are defined in `src/api/client.ts` — keep them in sync with the server models.
 - The Vite dev server proxies `/api` to the backend using `SERVER_HTTP` / `SERVER_HTTPS` env vars injected by Aspire.
+- **All UI features must be fully responsive.** Every new page, component, or UI change must work well on both mobile (≥320px) and desktop. Use `@media (max-width: 768px)` breakpoints, flex/grid stacking, full-width buttons, and minimum 44px touch targets on coarse-pointer devices. Never add a UI feature without also making it mobile-friendly.
 
 ### Aspire AppHost
 

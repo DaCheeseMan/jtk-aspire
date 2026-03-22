@@ -247,12 +247,35 @@ function UserCard({ user, onUpdated }: UserCardProps) {
   );
 }
 
+const PAGE_SIZE_OPTIONS = [20, 50, 0] as const; // 0 = All
+type RoleFilter = 'all' | 'none' | 'member' | 'admin';
+
+function matchesRoleFilter(user: AdminUser, filter: RoleFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'none') return user.roles.length === 0;
+  return user.roles.includes(filter);
+}
+
+function sortUsers(users: AdminUser[]): AdminUser[] {
+  return [...users].sort((a, b) => {
+    const firstA = (a.firstName ?? '').toLowerCase();
+    const firstB = (b.firstName ?? '').toLowerCase();
+    if (firstA !== firstB) return firstA.localeCompare(firstB, 'sv');
+    const lastA = (a.lastName ?? '').toLowerCase();
+    const lastB = (b.lastName ?? '').toLowerCase();
+    return lastA.localeCompare(lastB, 'sv');
+  });
+}
+
 export function AdminUsersPage() {
   const auth = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [pageSize, setPageSize] = useState<number>(20);
 
   function loadUsers() {
     setLoading(true);
@@ -269,6 +292,26 @@ export function AdminUsersPage() {
     setShowCreateForm(false);
     loadUsers();
   }
+
+  const query = search.trim().toLowerCase();
+  const filtered = sortUsers(users).filter(u => {
+    if (!matchesRoleFilter(u, roleFilter)) return false;
+    if (!query) return true;
+    return (
+      (u.firstName ?? '').toLowerCase().includes(query) ||
+      (u.lastName ?? '').toLowerCase().includes(query) ||
+      (u.email ?? '').toLowerCase().includes(query) ||
+      (u.username ?? '').toLowerCase().includes(query)
+    );
+  });
+  const visible = pageSize === 0 ? filtered : filtered.slice(0, pageSize);
+
+  const ROLE_FILTER_LABELS: Record<RoleFilter, string> = {
+    all: 'Alla',
+    none: 'Ingen roll',
+    member: 'Medlem',
+    admin: 'Admin',
+  };
 
   return (
     <div className="admin-users-page">
@@ -295,14 +338,57 @@ export function AdminUsersPage() {
 
       {error && <div className="error-banner">⚠️ {error}</div>}
 
+      {!loading && (
+        <div className="users-toolbar">
+          <input
+            className="users-search"
+            type="search"
+            placeholder="Sök på namn, e-post eller användarnamn…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <div className="role-filter-chips">
+            {(['all', 'none', 'member', 'admin'] as RoleFilter[]).map(f => (
+              <button
+                key={f}
+                className={`filter-chip${roleFilter === f ? ' filter-chip--active' : ''}`}
+                onClick={() => setRoleFilter(f)}
+              >
+                {ROLE_FILTER_LABELS[f]}
+              </button>
+            ))}
+          </div>
+          <div className="page-size-control">
+            <span>Visa</span>
+            {PAGE_SIZE_OPTIONS.map(n => (
+              <button
+                key={n}
+                className={`filter-chip${pageSize === n ? ' filter-chip--active' : ''}`}
+                onClick={() => setPageSize(n)}
+              >
+                {n === 0 ? 'Alla' : n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="loading">Laddar användare...</div>
       ) : (
         <div className="users-list">
-          <div className="users-count">{users.length} användare</div>
-          {users.map(u => (
+          <div className="users-count">
+            Visar {visible.length} av {filtered.length}
+            {filtered.length !== users.length ? ` (${users.length} totalt)` : ' användare'}
+          </div>
+          {visible.map(u => (
             <UserCard key={u.id} user={u} onUpdated={loadUsers} />
           ))}
+          {pageSize !== 0 && filtered.length > pageSize && (
+            <div className="users-truncated">
+              {filtered.length - pageSize} användare döljs — öka gränsen eller förfina sökningen.
+            </div>
+          )}
         </div>
       )}
     </div>

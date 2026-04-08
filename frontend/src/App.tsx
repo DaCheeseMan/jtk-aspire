@@ -4,7 +4,6 @@ import { useAuth } from 'react-oidc-context'
 import { Navbar } from './components/Navbar'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { LandingPage } from './pages/LandingPage'
-import { CourtsPage } from './pages/CourtsPage'
 import { WeeklyCalendarPage } from './pages/WeeklyCalendarPage'
 import { MyBookingsPage } from './pages/MyBookingsPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -39,7 +38,6 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/courts" element={<CourtsPage />} />
           <Route path="/book/:courtId" element={<WeeklyCalendarPage />} />
           <Route path="/my-bookings" element={
             <ProtectedRoute><MyBookingsPage /></ProtectedRoute>

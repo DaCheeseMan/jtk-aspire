@@ -2,12 +2,6 @@ import { useAuth } from 'react-oidc-context';
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
 
-const courts = [
-  { name: 'Bana 1', surface: 'Clay', icon: '🟤', desc: 'Utomhusbana med grusunderlag, perfekt för långa rallys.' },
-  { name: 'Bana 2', surface: 'Clay', icon: '🟤', desc: 'Utomhusbana med grusunderlag intill klubbhuset.' },
-  { name: 'Bana 3', surface: 'Hard', icon: '🔵', desc: 'Inomhusbana med hårt underlag, öppen året runt.' },
-];
-
 export function LandingPage() {
   const auth = useAuth();
 
@@ -22,10 +16,10 @@ export function LandingPage() {
           </p>
           <div className="hero-cta">
             {auth.isAuthenticated ? (
-              <Link to="/courts" className="cta-btn primary">Boka en bana →</Link>
+              <Link to="/book/1" className="cta-btn primary">Boka Banan →</Link>
             ) : (
               <>
-                <Link to="/courts" className="cta-btn primary">Se lediga tider →</Link>
+                <Link to="/book/1" className="cta-btn primary">Se lediga tider →</Link>
                 <button className="cta-btn secondary" onClick={() => auth.signinRedirect()}>
                   Logga in & boka
                 </button>
@@ -42,7 +36,7 @@ export function LandingPage() {
           <h2>Om Jonsereds TK</h2>
           <p>
             Jonsereds Tennisklubb är en familjevänlig klubb som har erbjudit
-            tennisglädje sedan 1970. Vi har tre välskötta banor och välkomnar
+            tennisglädje sedan 1970. Vi har en välskött asfaltbana och välkomnar
             spelare på alla nivåer — från nybörjare till erfarna tävlingsspelare.
           </p>
           <div className="about-highlights">
@@ -65,29 +59,23 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Courts */}
-      <section id="banor" className="courts-section">
+      {/* Court */}
+      <section id="banan" className="courts-section">
         <div className="section-content">
-          <h2>Våra banor</h2>
-          <div className="courts-grid">
-            {courts.map(c => (
-              <div key={c.name} className="court-card">
-                <div className="court-icon">{c.icon}</div>
-                <h3>{c.name}</h3>
-                <span className={`surface-badge ${c.surface.toLowerCase()}`}>{c.surface}</span>
-                <p>{c.desc}</p>
-              </div>
-            ))}
+          <h2>Banan</h2>
+          <div className="court-card-single">
+            <div className="court-icon">⬛</div>
+            <h3>Asfaltbana</h3>
+            <span className="surface-badge asphalt">Asphalt</span>
+            <p>Utomhusbana med asfaltunderlag.</p>
+            <Link to="/book/1" className="cta-btn primary">Se lediga tider →</Link>
           </div>
           {!auth.isAuthenticated && (
             <div className="courts-cta">
-              <p>Logga in för att boka en bana</p>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Link to="/courts" className="cta-btn secondary">Se lediga tider</Link>
-                <button className="cta-btn primary" onClick={() => auth.signinRedirect()}>
-                  Logga in
-                </button>
-              </div>
+              <p>Logga in för att boka banan</p>
+              <button className="cta-btn primary" onClick={() => auth.signinRedirect()}>
+                Logga in
+              </button>
             </div>
           )}
         </div>

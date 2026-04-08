@@ -13,9 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.Entity<Court>().HasData(
-            new Court { Id = 1, Name = "Bana 1", Surface = "Clay", Description = "Utomhusbana med grusunderlag.", IsActive = true },
-            new Court { Id = 2, Name = "Bana 2", Surface = "Clay", Description = "Utomhusbana med grusunderlag.", IsActive = true },
-            new Court { Id = 3, Name = "Bana 3", Surface = "Hard", Description = "Inomhusbana med hårt underlag.", IsActive = true }
+            new Court { Id = 1, Name = "Banan", Surface = "Asphalt", Description = "Utomhusbana med asfaltunderlag.", IsActive = true }
         );
     }
 }

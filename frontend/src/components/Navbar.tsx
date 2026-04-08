@@ -10,7 +10,7 @@ export function Navbar() {
   const userRoles = getUserRoles(auth.user?.access_token);
   const isAdmin = userRoles.includes('admin');
 
-  const isActive = (path: string) => location.pathname === path ? 'active' : '';
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/') ? 'active' : '';
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
 
@@ -21,7 +21,7 @@ export function Navbar() {
       </div>
       <div className="navbar-links">
         <Link to="/" className={isActive('/')}>Hem</Link>
-        <Link to="/courts" className={isActive('/courts')}>Banor</Link>
+        <Link to="/book/1" className={isActive('/book')}>Banan</Link>
         {auth.isAuthenticated && (
           <>
             <Link to="/my-bookings" className={isActive('/my-bookings')}>Mina Bokningar</Link>
@@ -59,7 +59,7 @@ export function Navbar() {
       {menuOpen && (
         <div className="navbar-mobile-menu">
           <Link to="/" className={isActive('/')} onClick={closeMenu}>Hem</Link>
-          <Link to="/courts" className={isActive('/courts')} onClick={closeMenu}>Banor</Link>
+          <Link to="/book/1" className={isActive('/book')} onClick={closeMenu}>Banan</Link>
           {auth.isAuthenticated && (
             <>
               <Link to="/my-bookings" className={isActive('/my-bookings')} onClick={closeMenu}>Mina Bokningar</Link>

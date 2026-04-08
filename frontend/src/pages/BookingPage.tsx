@@ -58,8 +58,8 @@ export function BookingPage() {
             <button className="btn-primary" onClick={() => navigate('/my-bookings')}>
               Mina bokningar
             </button>
-            <button className="btn-secondary" onClick={() => navigate('/courts')}>
-              Boka fler banor
+            <button className="btn-secondary" onClick={() => navigate('/book/1')}>
+              Tillbaka till banan
             </button>
           </div>
         </div>

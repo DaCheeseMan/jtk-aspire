@@ -30,6 +30,7 @@
 
 .surface-badge.clay { background: #ffe0b2; color: #bf360c; }
 .surface-badge.hard { background: #e3f2fd; color: #0d47a1; }
+.surface-badge.asphalt { background: #e0e0e0; color: #37474f; }
 
 .booking-form {
   display: flex;

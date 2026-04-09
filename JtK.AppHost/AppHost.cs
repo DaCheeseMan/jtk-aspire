@@ -60,6 +60,15 @@ else
     appDb = sharedPostgres.AddDatabase("jtkdb");
 }
 
+// Custom domain parameters for Azure Container Apps deployment.
+// First deploy: provide customDomain ("jonseredstk.se"), leave certificateName empty.
+// After deploy: bind a managed certificate in Azure Portal, note its name.
+// Subsequent deploys: provide the certificateName so the domain + TLS persist.
+#pragma warning disable ASPIREACADOMAINS001
+var customDomain = builder.AddParameter("customDomain");
+var certificateName = builder.AddParameter("certificateName");
+#pragma warning restore ASPIREACADOMAINS001
+
 // API server
 var server = builder.AddProject<Projects.JtK_Server>("server")
     .WithReference(appDb)
@@ -77,7 +86,13 @@ var server = builder.AddProject<Projects.JtK_Server>("server")
     .WaitFor(appDb)
     .WaitFor(keycloak)
     .WithHttpHealthCheck("/health")
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .PublishAsAzureContainerApp((infra, app) =>
+    {
+#pragma warning disable ASPIREACADOMAINS001
+        app.ConfigureCustomDomain(customDomain, certificateName);
+#pragma warning restore ASPIREACADOMAINS001
+    });
 
 // Augment PATH so Aspire can find npm regardless of how Node was installed
 // (Homebrew ARM, Homebrew Intel, nvm, volta, fnm)

@@ -359,27 +359,37 @@ adminGroup.MapGet("/users", async (ClaimsPrincipal user, IConfiguration config, 
     var adminUrl = GetKeycloakAdminUrl(config, env.IsDevelopment());
     var client = httpClientFactory.CreateClient("keycloak-account");
 
+    // Fetch all users and role memberships in 3 requests instead of 1+N
     var usersReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/users?max=1000");
     usersReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+    var membersReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/roles/member/users?max=1000");
+    membersReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+    var adminsReq = new HttpRequestMessage(HttpMethod.Get, $"{adminUrl}/admin/realms/jtk/roles/admin/users?max=1000");
+    adminsReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
     var usersRes = await client.SendAsync(usersReq);
     if (!usersRes.IsSuccessStatusCode) return Results.StatusCode((int)usersRes.StatusCode);
+    var users = await usersRes.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>() ?? [];
 
-    var users = await usersRes.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>();
+    var membersRes = await client.SendAsync(membersReq);
+    var memberIds = membersRes.IsSuccessStatusCode
+        ? (await membersRes.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>() ?? [])
+            .Select(u => u.Id).ToHashSet()
+        : new HashSet<string?>();
 
-    // Fetch realm roles for each user in parallel
-    var usersWithRoles = await Task.WhenAll((users ?? []).Select(async u =>
+    var adminsRes = await client.SendAsync(adminsReq);
+    var adminIds = adminsRes.IsSuccessStatusCode
+        ? (await adminsRes.Content.ReadFromJsonAsync<List<KeycloakUserRepresentation>>() ?? [])
+            .Select(u => u.Id).ToHashSet()
+        : new HashSet<string?>();
+
+    var usersWithRoles = users.Select(u =>
     {
-        var rolesClient = httpClientFactory.CreateClient("keycloak-account");
-        var rolesReq = new HttpRequestMessage(HttpMethod.Get,
-            $"{adminUrl}/admin/realms/jtk/users/{u.Id}/role-mappings/realm");
-        rolesReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var rolesRes = await rolesClient.SendAsync(rolesReq);
-        var roles = rolesRes.IsSuccessStatusCode
-            ? (await rolesRes.Content.ReadFromJsonAsync<List<KeycloakRoleRepresentation>>() ?? [])
-                .Where(r => r.Name == "member" || r.Name == "admin")
-                .Select(r => r.Name!)
-                .ToList()
-            : new List<string>();
+        var roles = new List<string>();
+        if (memberIds.Contains(u.Id)) roles.Add("member");
+        if (adminIds.Contains(u.Id)) roles.Add("admin");
         return new
         {
             id = u.Id,
@@ -390,7 +400,7 @@ adminGroup.MapGet("/users", async (ClaimsPrincipal user, IConfiguration config, 
             phoneNumber = u.Attributes?.GetValueOrDefault("phone_number")?[0],
             roles,
         };
-    }));
+    }).ToList();
 
     return Results.Ok(usersWithRoles);
 });

@@ -84,49 +84,675 @@
   ],
   "users": [
     {
-      "username": "member1",
-      "email": "member1@jonsereds-tk.se",
-      "firstName": "Anna",
-      "lastName": "Johansson",
+      "username": "administrator",
+      "email": "info@jonseredstk.se",
+      "firstName": "Administrator",
+      "lastName": "",
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Password1!",
-          "temporary": false
-        }
-      ],
+      "credentials": [],
       "realmRoles": [
-        "member"
-      ],
-      "attributes": {
-        "phone_number": [
-          "073-123 45 67"
-        ]
-      }
+        "admin"
+      ]
     },
     {
-      "username": "admin1",
-      "email": "admin1@jonsereds-tk.se",
-      "firstName": "Erik",
-      "lastName": "Lindberg",
+      "username": "karinvicky72",
+      "email": "karinvicky72@gmail.com",
+      "firstName": "Alfred",
+      "lastName": "Zarkout",
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Password1!",
-          "temporary": false
-        }
-      ],
+      "credentials": [],
       "realmRoles": [
-        "member",
-        "admin"
-      ],
-      "attributes": {
-        "phone_number": [
-          "070-987 65 43"
-        ]
-      }
+        "member"
+      ]
+    },
+    {
+      "username": "famahl",
+      "email": "famahl@yahoo.se",
+      "firstName": "Anders",
+      "lastName": "Ahl",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "annette-fruh",
+      "email": "annette.fruh@gmail.com",
+      "firstName": "Annette",
+      "lastName": "Früh",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "annie-liden",
+      "email": "annie.liden@volvocars.com",
+      "firstName": "Annie",
+      "lastName": "Liden",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "ark-bjorn-johansson",
+      "email": "ark.bjorn.johansson@gmail.com",
+      "firstName": "Björn",
+      "lastName": "Johansson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "cjlundell",
+      "email": "cjlundell@hotmail.com",
+      "firstName": "Carl-Johan",
+      "lastName": "Lundell",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "ceciliawarne",
+      "email": "ceciliawarne@gmail.com",
+      "firstName": "Cecilia",
+      "lastName": "Wärne",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "ireneochrister",
+      "email": "ireneochrister@telia.com",
+      "firstName": "Christer",
+      "lastName": "Gustafsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "nilsanders-clarholm",
+      "email": "nilsanders.clarholm@gmail.com",
+      "firstName": "Clarholm",
+      "lastName": "",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "david-ekelund",
+      "email": "david.ekelund@icebug.se",
+      "firstName": "David",
+      "lastName": "Ekelund",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "rosberg-david",
+      "email": "rosberg_david@hotmail.com",
+      "firstName": "David",
+      "lastName": "Rosberg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "fredrik-b-olsson",
+      "email": "fredrik.b.olsson@outlook.com",
+      "firstName": "Fredrik",
+      "lastName": "Olsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "fredrik-thunstrom",
+      "email": "fredrik.thunstrom@inhousetech.se",
+      "firstName": "Fredrik",
+      "lastName": "Thunström",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "f-widing",
+      "email": "f.widing@gmail.com",
+      "firstName": "Fredrik",
+      "lastName": "Widing",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "buren-harald",
+      "email": "buren.harald@gmail.com",
+      "firstName": "Harald",
+      "lastName": "Burén",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "haraldmofjell",
+      "email": "haraldmofjell@outlook.com",
+      "firstName": "Harald",
+      "lastName": "Mofjell",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "henriclundh1",
+      "email": "henriclundh1@gmail.com",
+      "firstName": "Henric",
+      "lastName": "Lundh",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "hakan-erlandsson22",
+      "email": "hakan.erlandsson22@gmail.com",
+      "firstName": "Håkan",
+      "lastName": "Erlandsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "hakan",
+      "email": "hakan@stenvaller.se",
+      "firstName": "Håkan",
+      "lastName": "Stenvaller",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jakob74",
+      "email": "jakob74@live.se",
+      "firstName": "Jakob",
+      "lastName": "Pontusson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jessasik",
+      "email": "jessasik@gmail.com",
+      "firstName": "Jesse",
+      "lastName": "Cederberg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "johansemejl",
+      "email": "johansemejl@gmail.com",
+      "firstName": "Johan",
+      "lastName": "Wahlberg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "lundelljohannes",
+      "email": "lundelljohannes@gmail.com",
+      "firstName": "Johannes",
+      "lastName": "Lundell",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "john",
+      "email": "john@skyltmax.se",
+      "firstName": "John",
+      "lastName": "Eskilsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "stekenmagnusson",
+      "email": "stekenmagnusson@gmail.com",
+      "firstName": "Jonas",
+      "lastName": "Magnusson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jonas-anestrand",
+      "email": "jonas_anestrand@hotmail.com",
+      "firstName": "Jonas",
+      "lastName": "Ånestrand",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jungkalle",
+      "email": "jungkalle@gmail.com",
+      "firstName": "Kalle",
+      "lastName": "Jung",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jonellkarin",
+      "email": "jonellkarin@hotmail.com",
+      "firstName": "Karin",
+      "lastName": "Jönell",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "lennart-mossberg",
+      "email": "lennart.mossberg@protonmail.com",
+      "firstName": "Lennart",
+      "lastName": "Mossberg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "lottakoitrand",
+      "email": "lottakoitrand@gmail.com",
+      "firstName": "Lotta",
+      "lastName": "Koitrand",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "madeleine-a-hakansson",
+      "email": "madeleine.a.hakansson@gmail.com",
+      "firstName": "Madeleine",
+      "lastName": "Håkansson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "mhh96",
+      "email": "mhh96@live.no",
+      "firstName": "Magnus",
+      "lastName": "Hallandvik",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "magnus",
+      "email": "magnus@neutral.com",
+      "firstName": "Magnus",
+      "lastName": "Jonasson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "olofmarcus",
+      "email": "olofmarcus@outlook.com",
+      "firstName": "Marcus",
+      "lastName": "Jerkeborg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "maria-dahl",
+      "email": "maria.dahl@ddrama.se",
+      "firstName": "Maria",
+      "lastName": "Dahl",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "markus-forsberg",
+      "email": "markus.forsberg@xerab.se",
+      "firstName": "Markus",
+      "lastName": "Forsberg",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "marfro0322",
+      "email": "marfro0322@gmail.com",
+      "firstName": "Martin",
+      "lastName": "Frosthammar",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "jonseredsmaleri",
+      "email": "jonseredsmaleri@gmail.com",
+      "firstName": "Mats",
+      "lastName": "Soikkeli",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "nilssonmattias68",
+      "email": "nilssonmattias68@gmail.com",
+      "firstName": "Mattias",
+      "lastName": "Nilsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "mattias-sim",
+      "email": "mattias.sim@gmail.com",
+      "firstName": "Mattias",
+      "lastName": "Simonsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "mikael",
+      "email": "mikael@rehnteknik.se",
+      "firstName": "Mikael",
+      "lastName": "Rehn",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "info2",
+      "email": "info@asonstudio.se",
+      "firstName": "Måns",
+      "lastName": "Abrahamsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "nickdelahooke",
+      "email": "nickdelahooke@hotmail.com",
+      "firstName": "Nicholas",
+      "lastName": "Delahooke",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "osterlund-n",
+      "email": "osterlund.n@gmail.com",
+      "firstName": "Niklas",
+      "lastName": "Österlund",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "wiklund-nina",
+      "email": "wiklund.nina@gmail.com",
+      "firstName": "Nina",
+      "lastName": "Wiklund",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "olof-mogren",
+      "email": "olof.mogren@gmail.com",
+      "firstName": "Olof",
+      "lastName": "Mogren",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "pelleeriksson1960",
+      "email": "pelleeriksson1960@gmail.com",
+      "firstName": "Pelle",
+      "lastName": "Eriksson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "periksalk",
+      "email": "periksalk@gmail.com",
+      "firstName": "Per",
+      "lastName": "Sahlqvist",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "petter",
+      "email": "petter@almhagen.se",
+      "firstName": "Petter",
+      "lastName": "Almhagen",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "haywardr",
+      "email": "haywardr@gmail.com",
+      "firstName": "Robert",
+      "lastName": "Hayward",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "roy-hageland",
+      "email": "roy.hageland@gmail.com",
+      "firstName": "Roy",
+      "lastName": "Hagelan",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "smab",
+      "email": "smab@student.chalmers.se",
+      "firstName": "Sam",
+      "lastName": "Abedini",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "sara-a-skold",
+      "email": "sara.a.skold@gmail.com",
+      "firstName": "Sara",
+      "lastName": "Sköld",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "ficktjuv",
+      "email": "ficktjuv@gmail.com",
+      "firstName": "Sebastian",
+      "lastName": "Brands",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "mtbjonsered",
+      "email": "mtbjonsered@gmail.com",
+      "firstName": "Sofia",
+      "lastName": "Bergström",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "staf-hojer",
+      "email": "staf_hojer@hotmail.com",
+      "firstName": "Staffan",
+      "lastName": "Höjer",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "steen-nielsen",
+      "email": "steen.nielsen@telia.com",
+      "firstName": "Steen",
+      "lastName": "Nielsen",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "stefansegerqvist",
+      "email": "stefansegerqvist@gmail.com",
+      "firstName": "Stefan",
+      "lastName": "Segerqvist",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "taavi",
+      "email": "taavi@byggdirigent.se",
+      "firstName": "Taavi",
+      "lastName": "Pahapill",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "tobiasjon",
+      "email": "tobiasjon@gmail.com",
+      "firstName": "Tobias",
+      "lastName": "Jonsson",
+      "enabled": true,
+      "credentials": [],
+      "realmRoles": [
+        "member"
+      ]
     }
   ],
   "components": {

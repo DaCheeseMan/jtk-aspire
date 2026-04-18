@@ -92,9 +92,8 @@ export function LandingPage() {
               <p>📞 0302-123 45</p>
             </div>
             <div>
-              <p><strong>Öppettider</strong></p>
-              <p>Mån–fre: 07:00–21:00</p>
-              <p>Lör–sön: 08:00–20:00</p>
+              <p><strong>Banans öppettider</strong></p>
+              <p>Alla dagar: 07:00–23:00</p>
             </div>
           </div>
         </div>

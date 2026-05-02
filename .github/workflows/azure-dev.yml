@@ -51,29 +51,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install azd
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          case "${RUNNER_ARCH}" in
-            X64) azd_asset="azd-linux-amd64.tar.gz" ;;
-            ARM64) azd_asset="azd-linux-arm64.tar.gz" ;;
-            *)
-              echo "::error::Unsupported runner architecture: ${RUNNER_ARCH}"
-              exit 1
-              ;;
-          esac
-
-          download_url="https://github.com/Azure/azure-dev/releases/download/azure-dev-cli_${AZD_VERSION}/${azd_asset}"
-          temp_dir="$(mktemp -d)"
-          trap 'rm -rf "${temp_dir}"' EXIT
-
-          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${download_url}" -o "${temp_dir}/${azd_asset}"
-          tar -xzf "${temp_dir}/${azd_asset}" -C "${temp_dir}"
-          sudo install -m 0755 "${temp_dir}/azd" /usr/local/bin/azd
-          azd version
-
       - name: Validate deployment configuration
         shell: bash
         run: |
@@ -96,6 +73,35 @@ jobs:
           fi
 
           exit "${missing}"
+
+      - name: Install azd
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "${RUNNER_ARCH}" in
+            X64)
+              azd_asset="azd-linux-amd64.tar.gz"
+              azd_binary="azd-linux-amd64"
+              ;;
+            ARM64)
+              azd_asset="azd-linux-arm64.tar.gz"
+              azd_binary="azd-linux-arm64"
+              ;;
+            *)
+              echo "::error::Unsupported runner architecture: ${RUNNER_ARCH}"
+              exit 1
+              ;;
+          esac
+
+          download_url="https://github.com/Azure/azure-dev/releases/download/azure-dev-cli_${AZD_VERSION}/${azd_asset}"
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "${temp_dir}"' EXIT
+
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "${download_url}" -o "${temp_dir}/${azd_asset}"
+          tar -xzf "${temp_dir}/${azd_asset}" -C "${temp_dir}"
+          sudo install -m 0755 "${temp_dir}/${azd_binary}" /usr/local/bin/azd
+          azd version
 
       - name: Install frontend dependencies
         working-directory: frontend

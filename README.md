@@ -119,6 +119,39 @@ Keycloak starts with an empty database in Azure. The realm must be imported manu
 
 Subsequent redeploys (`azd deploy`) do not require this step — the realm is persisted in Keycloak's PostgreSQL database.
 
+### CI/CD with GitHub Actions
+
+This repo now includes:
+
+- `.github/workflows/ci.yml` — runs on pull requests and pushes to `main`
+- `.github/workflows/azure-dev.yml` — deploys to Azure on pushes to `main` or manual runs
+
+The deployment workflow uses GitHub OIDC with Azure and runs `azd provision` followed by `azd deploy` so infrastructure stays in sync and the Keycloak ACR import hook can refresh `AcrEndpoint` before packaging.
+
+Set up GitHub deployment once per environment:
+
+1. Create a GitHub Environment named `production` and optionally add required reviewers if you want approval before production deploys.
+2. Run:
+   ```bash
+   azd pipeline config -e <environment-name>
+   ```
+3. In GitHub **Settings → Secrets and variables → Actions**, add or verify these repository variables:
+   - `AZURE_CLIENT_ID`
+   - `AZURE_TENANT_ID`
+   - `AZURE_SUBSCRIPTION_ID`
+   - `AZURE_ENV_NAME`
+   - `AZURE_LOCATION`
+   - `POSTGRES_USER` (optional, defaults to `jtk`)
+   - `CUSTOM_DOMAIN` (optional)
+   - `CERTIFICATE_NAME` (optional)
+4. Add these repository secrets:
+   - `KEYCLOAK_PASSWORD`
+   - `POSTGRES_PASSWORD`
+
+Keep `KEYCLOAK_PASSWORD` synchronized with the actual Keycloak admin password in production. Changing the GitHub secret alone does not reset the password inside an already-initialized Keycloak instance.
+
+After the first successful pipeline deploy, the Keycloak realm import is still a one-time manual step using `realms/jtk-realm.json`, exactly like the manual deploy flow above.
+
 Tear down
 ```bash
 azd down        # deletes all provisioned Azure resources

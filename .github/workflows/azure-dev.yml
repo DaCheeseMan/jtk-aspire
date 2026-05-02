@@ -1,0 +1,117 @@
+name: Deploy to Azure
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+      - next-steps.md
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      POSTGRES_USER: ${{ vars.POSTGRES_USER || 'jtk' }}
+      CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
+      CERTIFICATE_NAME: ${{ vars.CERTIFICATE_NAME }}
+      KEYCLOAK_PASSWORD: ${{ secrets.KEYCLOAK_PASSWORD }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install azd
+        uses: Azure/setup-azd@v1.0.0
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID AZURE_ENV_NAME AZURE_LOCATION KEYCLOAK_PASSWORD POSTGRES_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required GitHub Actions variable or secret: ${name}"
+              missing=1
+            fi
+          done
+
+          if [ "${KEYCLOAK_PASSWORD}" = "admin" ]; then
+            echo "::error::KEYCLOAK_PASSWORD must not use the default Keycloak admin password."
+            missing=1
+          fi
+
+          if [ "${POSTGRES_PASSWORD}" = "Password1!" ]; then
+            echo "::error::POSTGRES_PASSWORD must not use the default PostgreSQL password."
+            missing=1
+          fi
+
+          exit "${missing}"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Log in with Azure (federated credentials)
+        shell: pwsh
+        run: |
+          azd auth login `
+            --client-id "$Env:AZURE_CLIENT_ID" `
+            --federated-credential-provider "github" `
+            --tenant-id "$Env:AZURE_TENANT_ID"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Select Azure subscription
+        shell: bash
+        run: az account set --subscription "$AZURE_SUBSCRIPTION_ID"
+
+      - name: Provision infrastructure
+        env:
+          KeycloakPassword: ${{ env.KEYCLOAK_PASSWORD }}
+          PostgresUser: ${{ env.POSTGRES_USER }}
+          PostgresPassword: ${{ env.POSTGRES_PASSWORD }}
+          customDomain: ${{ env.CUSTOM_DOMAIN }}
+          certificateName: ${{ env.CERTIFICATE_NAME }}
+        run: azd provision --no-prompt
+
+      - name: Deploy application
+        env:
+          KeycloakPassword: ${{ env.KEYCLOAK_PASSWORD }}
+          PostgresUser: ${{ env.POSTGRES_USER }}
+          PostgresPassword: ${{ env.POSTGRES_PASSWORD }}
+          customDomain: ${{ env.CUSTOM_DOMAIN }}
+          certificateName: ${{ env.CERTIFICATE_NAME }}
+        run: azd deploy --no-prompt

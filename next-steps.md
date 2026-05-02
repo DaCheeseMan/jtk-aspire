@@ -17,9 +17,15 @@ To troubleshoot any issues, see [troubleshooting](#troubleshooting).
 
 ### Configure CI/CD pipeline
 
+This repo includes GitHub Actions workflows in `.github/workflows/ci.yml` and `.github/workflows/azure-dev.yml`.
+
 Run `azd pipeline config -e <environment name>` to configure the deployment pipeline to connect securely to Azure. An environment name is specified here to configure the pipeline with a different environment for isolation purposes. Run `azd env list` and `azd env set` to reselect the default environment after this step.
 
-- Deploying with `GitHub Actions`: Select `GitHub` when prompted for a provider. If your project lacks the `azure-dev.yml` file, accept the prompt to add it and proceed with pipeline configuration.
+- Deploying with `GitHub Actions`: Select `GitHub` when prompted for a provider. Then add these GitHub repository variables if they are not already present: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_ENV_NAME`, `AZURE_LOCATION`, and optionally `POSTGRES_USER`, `CUSTOM_DOMAIN`, `CERTIFICATE_NAME`.
+
+- Add these GitHub repository secrets: `KEYCLOAK_PASSWORD` and `POSTGRES_PASSWORD`.
+
+- Create a GitHub Environment named `production` if you want the deploy workflow to use environment protection rules.
 
 - Deploying with `Azure DevOps Pipeline`: Select `Azure DevOps` when prompted for a provider. If your project lacks the `azure-dev.yml` file, accept the prompt to add it and proceed with pipeline configuration.
 

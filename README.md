@@ -140,14 +140,15 @@ Set up GitHub deployment once per environment:
    - `AZURE_SUBSCRIPTION_ID`
    - `AZURE_ENV_NAME`
    - `AZURE_LOCATION`
-   - `POSTGRES_USER` (optional, defaults to `jtk`)
-   - `CUSTOM_DOMAIN` (optional)
-   - `CERTIFICATE_NAME` (optional)
+   - `AZURE_POSTGRES_USER` (optional, defaults to `jtk`)
+   - `AZURE_CUSTOM_DOMAIN` (optional)
+   - `AZURE_CERTIFICATE_NAME` (optional)
 3. Add these repository secrets:
    - `KEYCLOAK_PASSWORD`
    - `POSTGRES_PASSWORD`
 
 The deploy workflow is branch-based, so the federated credential subject should match `repo:DaCheeseMan/jtk-aspire:ref:refs/heads/main`. A GitHub Environment is not required unless you later choose to add one back to the workflow.
+It also accepts the older variable names `POSTGRES_USER`, `CUSTOM_DOMAIN`, and `CERTIFICATE_NAME`, but the current repo settings use the `AZURE_*` names.
 
 Keep `KEYCLOAK_PASSWORD` synchronized with the actual Keycloak admin password in production. Changing the GitHub secret alone does not reset the password inside an already-initialized Keycloak instance.
 

@@ -96,21 +96,25 @@ var server = builder.AddProject<Projects.JtK_Server>("server")
 
 // Augment PATH so Aspire can find npm regardless of how Node was installed
 // (Homebrew ARM, Homebrew Intel, nvm, volta, fnm)
-var nvmDefaultBin = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-    ".nvm", "versions", "node",
-    Directory.EnumerateDirectories(
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nvm", "versions", "node")
-    ).Select(Path.GetFileName).OrderDescending().FirstOrDefault() ?? "",
-    "bin");
+var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+var nvmVersionsPath = Path.Combine(userProfile, ".nvm", "versions", "node");
+var nvmDefaultVersion = Directory.Exists(nvmVersionsPath)
+    ? Directory.EnumerateDirectories(nvmVersionsPath)
+        .Select(Path.GetFileName)
+        .OrderDescending()
+        .FirstOrDefault()
+    : null;
+var nvmDefaultBin = string.IsNullOrEmpty(nvmDefaultVersion)
+    ? string.Empty
+    : Path.Combine(nvmVersionsPath, nvmDefaultVersion, "bin");
 
 var nodePaths = new[]
 {
     nvmDefaultBin,
     "/opt/homebrew/bin",
     "/usr/local/bin",
-    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".volta/bin"),
-    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".fnm/aliases/default/bin"),
+    Path.Combine(userProfile, ".volta/bin"),
+    Path.Combine(userProfile, ".fnm/aliases/default/bin"),
 };
 var extraPath = string.Join(":", nodePaths.Where(Directory.Exists));
 var currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;

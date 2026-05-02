@@ -36,14 +36,14 @@ export function LandingPage() {
           <h2>Om Jonsereds TK</h2>
           <p>
             Jonsereds Tennisklubb är en familjevänlig klubb som har erbjudit
-            tennisglädje sedan 1970. Vi har en välskött asfaltbana och välkomnar
+            tennisglädje länge. Vi har en välskött asfaltbana och välkomnar
             spelare på alla nivåer — från nybörjare till erfarna tävlingsspelare.
           </p>
           <div className="about-highlights">
             <div className="highlight">
-              <span className="highlight-icon">🏆</span>
-              <strong>Tävlingsaktiv</strong>
-              <p>Vi deltar i SDS-serien och arrangerar lokala cuper.</p>
+              <span className="highlight-icon">🤝</span>
+              <strong>Gemenskap & spelglädje</strong>
+              <p>Fokus på socialt spel, utveckling och att ha roligt tillsammans på banan.</p>
             </div>
             <div className="highlight">
               <span className="highlight-icon">👶</span>
@@ -66,7 +66,7 @@ export function LandingPage() {
           <div className="court-card-single">
             <div className="court-icon">⬛</div>
             <h3>Asfaltbana</h3>
-            <span className="surface-badge asphalt">Asphalt</span>
+            <span className="surface-badge asphalt">Asfalt</span>
             <p>Utomhusbana med asfaltunderlag.</p>
             <Link to="/book/1" className="cta-btn primary">Se lediga tider →</Link>
           </div>
@@ -87,9 +87,10 @@ export function LandingPage() {
           <h2>Kontakt & Hitta hit</h2>
           <div className="contact-grid">
             <div>
-              <p>📍 Tennisvägen 1, 443 30 Lerum</p>
-              <p>📧 <a href="mailto:info@jonsereds-tk.se">info@jonsereds-tk.se</a></p>
-              <p>📞 0302-123 45</p>
+              <p>📍 <a href ="https://maps.app.goo.gl/4cEPUnhFrcYWCvQr9" target="_blank" rel="noopener noreferrer">Google Maps</a></p>
+              <p>📧 <a href="mailto:info@jonseredstk.se">info@jonseredstk.se</a></p>
+              <p>📞 Markus Forsberg, ordförande: +46 70-841 38 41</p>
+              <p>📞 Henric Lundh, ekonomi och nycklar: +46 70-841 38 41</p>
             </div>
             <div>
               <p><strong>Banans öppettider</strong></p>

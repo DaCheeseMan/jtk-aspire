@@ -127,6 +127,11 @@ jobs:
 
       - name: Provision infrastructure
         env:
+          AZURE_KEYCLOAK_PASSWORD: ${{ env.KEYCLOAK_PASSWORD }}
+          AZURE_POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          AZURE_POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          AZURE_CUSTOM_DOMAIN: ${{ env.CUSTOM_DOMAIN }}
+          AZURE_CERTIFICATE_NAME: ${{ env.CERTIFICATE_NAME }}
           KeycloakPassword: ${{ env.KEYCLOAK_PASSWORD }}
           PostgresUser: ${{ env.POSTGRES_USER }}
           PostgresPassword: ${{ env.POSTGRES_PASSWORD }}
@@ -136,6 +141,11 @@ jobs:
 
       - name: Deploy application
         env:
+          AZURE_KEYCLOAK_PASSWORD: ${{ env.KEYCLOAK_PASSWORD }}
+          AZURE_POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          AZURE_POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          AZURE_CUSTOM_DOMAIN: ${{ env.CUSTOM_DOMAIN }}
+          AZURE_CERTIFICATE_NAME: ${{ env.CERTIFICATE_NAME }}
           KeycloakPassword: ${{ env.KEYCLOAK_PASSWORD }}
           PostgresUser: ${{ env.POSTGRES_USER }}
           PostgresPassword: ${{ env.POSTGRES_PASSWORD }}

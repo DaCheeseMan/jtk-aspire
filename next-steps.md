@@ -25,7 +25,7 @@ Run `azd pipeline config -e <environment name>` to configure the deployment pipe
 
 - Add these GitHub repository secrets: `KEYCLOAK_PASSWORD` and `POSTGRES_PASSWORD`.
 
-- Create a GitHub Environment named `production` if you want the deploy workflow to use environment protection rules.
+- The current deploy workflow is branch-based and matches the GitHub OIDC subject for `main`; a GitHub Environment is not required.
 
 - Deploying with `Azure DevOps Pipeline`: Select `Azure DevOps` when prompted for a provider. If your project lacks the `azure-dev.yml` file, accept the prompt to add it and proceed with pipeline configuration.
 

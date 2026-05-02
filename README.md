@@ -130,12 +130,11 @@ The deployment workflow uses GitHub OIDC with Azure and runs `azd provision` fol
 
 Set up GitHub deployment once per environment:
 
-1. Create a GitHub Environment named `production` and optionally add required reviewers if you want approval before production deploys.
-2. Run:
+1. Run:
    ```bash
    azd pipeline config -e <environment-name>
    ```
-3. In GitHub **Settings → Secrets and variables → Actions**, add or verify these repository variables:
+2. In GitHub **Settings → Secrets and variables → Actions**, add or verify these repository variables:
    - `AZURE_CLIENT_ID`
    - `AZURE_TENANT_ID`
    - `AZURE_SUBSCRIPTION_ID`
@@ -144,9 +143,11 @@ Set up GitHub deployment once per environment:
    - `POSTGRES_USER` (optional, defaults to `jtk`)
    - `CUSTOM_DOMAIN` (optional)
    - `CERTIFICATE_NAME` (optional)
-4. Add these repository secrets:
+3. Add these repository secrets:
    - `KEYCLOAK_PASSWORD`
    - `POSTGRES_PASSWORD`
+
+The deploy workflow is branch-based, so the federated credential subject should match `repo:DaCheeseMan/jtk-aspire:ref:refs/heads/main`. A GitHub Environment is not required unless you later choose to add one back to the workflow.
 
 Keep `KEYCLOAK_PASSWORD` synchronized with the actual Keycloak admin password in production. Changing the GitHub secret alone does not reset the password inside an already-initialized Keycloak instance.
 

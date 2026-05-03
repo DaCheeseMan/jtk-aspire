@@ -27,7 +27,7 @@ namespace JtK.Server.Migrations
                 keyColumn: "Id",
                 keyValue: 1,
                 columns: new[] { "Description", "Name", "Surface" },
-                values: new object[] { "Utomhusbana med asfaltunderlag.", "Banan", "Asphalt" });
+                values: new object[] { "Utomhusbana med asfaltunderlag.", "Banan", "Asfalt" });
         }
 
         /// <inheritdoc />
